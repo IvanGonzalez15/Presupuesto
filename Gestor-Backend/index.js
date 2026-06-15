@@ -7,6 +7,7 @@ const clienteController = require('./controllers/cliente.controller');
 const elementoController = require('./controllers/elemento.controller');
 const proyectoController = require('./controllers/proyecto.controller');
 const usuarioController = require('./controllers/usuario.controller');
+const materialController = require('./controllers/material.controller');
 const { ensureElementoProjectForeignKey } = require('./config/ensureSchema');
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -33,6 +34,12 @@ bindCrudRoutes('/api/clientes', clienteController);
 bindCrudRoutes('/api/usuarios', usuarioController);
 bindCrudRoutes('/api/proyectos', proyectoController);
 bindCrudRoutes('/api/elementos', elementoController);
+
+app.get('/api/materiales', materialController.findAll);
+app.get('/api/materiales/:id', materialController.findOne);
+app.post('/api/materiales', materialController.ensureAdmin, materialController.create);
+app.put('/api/materiales/:id', materialController.ensureAdmin, materialController.update);
+app.delete('/api/materiales/:id', materialController.ensureAdmin, materialController.remove);
 
 app.use((error, _req, res, _next) => {
   console.error(error);
