@@ -6,7 +6,6 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 const money = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' })
 const today = new Date().toISOString().slice(0, 10)
 
-const initialUser = { nombre: '', email: '', password_hash: '', rol: 'gestor', Activo: 1 }
 const initialClient = { id: '', Nombre: '', Persona_contacto: '', Email_contacto: '', Numero_contacto: '' }
 const initialProject = { Codigo: '', Fecha_entrega: today, Colaboradores: '', Responsable: '', Id_Cliente: '' }
 const initialItem = { Nombre: '', Ref: '', Cantidad: 1, Medida: 1, Unidad_de_medida: 'ud', Precio: 0 }
@@ -18,7 +17,6 @@ function App() {
   const [elementos, setElementos] = useState([])
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const [status, setStatus] = useState('Cargando datos del backend...')
-  const [userDraft, setUserDraft] = useState(initialUser)
   const [clientDraft, setClientDraft] = useState(initialClient)
   const [projectDraft, setProjectDraft] = useState(initialProject)
   const [itemDraft, setItemDraft] = useState(initialItem)
@@ -77,20 +75,6 @@ function App() {
     setter((current) => ({ ...current, [name]: value }))
   }
 
-  const createUsuario = async (event) => {
-    event.preventDefault()
-    try {
-      const payload = { ...userDraft, Activo: Number(userDraft.Activo) }
-      const { data } = await axios.post(`${API_URL}/usuarios`, payload)
-      setUsuarios((current) => [...current, data].sort((a, b) => a.nombre.localeCompare(b.nombre)))
-      setProjectDraft((current) => ({ ...current, Responsable: current.Responsable || String(data.id) }))
-      setUserDraft(initialUser)
-      setStatus(`Usuario ${data.nombre} creado. Ya puedes asignarlo a proyectos.`)
-    } catch (error) {
-      setStatus(`No se pudo crear el usuario: ${error.response?.data?.message || error.message}`)
-    }
-  }
-
   const createCliente = async (event) => {
     event.preventDefault()
     try {
@@ -109,6 +93,7 @@ function App() {
     try {
       const payload = {
         ...projectDraft,
+        Colaboradores: projectDraft.Colaboradores ? Number(projectDraft.Colaboradores) : null,
         Responsable: Number(projectDraft.Responsable),
         Id_Cliente: Number(projectDraft.Id_Cliente),
       }
@@ -156,7 +141,7 @@ function App() {
         <div>
           <span className="eyebrow">Gestor de presupuestos</span>
           <h1>Panel operativo para presupuestos</h1>
-          <p>Crea usuarios, clientes y proyectos desde la interfaz para poder preparar presupuestos sin tocar la base de datos.</p>
+          <p>Gestiona clientes y proyectos desde la interfaz para preparar presupuestos usando los usuarios ya registrados.</p>
         </div>
         <div className="hero-stats">
           <div><strong>{usuarios.length}</strong><span>usuarios</span></div>
@@ -166,19 +151,8 @@ function App() {
       </header>
 
       <section className="setup-grid">
-        <form className="panel setup-card" onSubmit={createUsuario}>
-          <div className="section-title"><span>01</span><h2>Crear usuario</h2></div>
-          <input name="nombre" onChange={updateDraft(setUserDraft)} placeholder="Nombre" required value={userDraft.nombre} />
-          <input name="email" onChange={updateDraft(setUserDraft)} placeholder="Email" type="email" value={userDraft.email} />
-          <input name="password_hash" onChange={updateDraft(setUserDraft)} placeholder="Clave o hash inicial" required value={userDraft.password_hash} />
-          <select name="rol" onChange={updateDraft(setUserDraft)} value={userDraft.rol}>
-            <option value="gestor">Gestor</option><option value="admin">Admin</option><option value="comercial">Comercial</option>
-          </select>
-          <button type="submit">Crear usuario</button>
-        </form>
-
         <form className="panel setup-card" onSubmit={createCliente}>
-          <div className="section-title"><span>02</span><h2>Crear cliente</h2></div>
+          <div className="section-title"><span>01</span><h2>Crear cliente</h2></div>
           <input name="id" onChange={updateDraft(setClientDraft)} placeholder="ID cliente" required value={clientDraft.id} />
           <input name="Nombre" onChange={updateDraft(setClientDraft)} placeholder="Nombre fiscal" required value={clientDraft.Nombre} />
           <input name="Persona_contacto" onChange={updateDraft(setClientDraft)} placeholder="Persona de contacto" value={clientDraft.Persona_contacto} />
@@ -187,7 +161,7 @@ function App() {
         </form>
 
         <form className="panel setup-card" onSubmit={createProyecto}>
-          <div className="section-title"><span>03</span><h2>Crear proyecto</h2></div>
+          <div className="section-title"><span>02</span><h2>Crear proyecto</h2></div>
           <input name="Codigo" onChange={updateDraft(setProjectDraft)} placeholder="Código proyecto" required value={projectDraft.Codigo} />
           <input name="Fecha_entrega" onChange={updateDraft(setProjectDraft)} required type="date" value={projectDraft.Fecha_entrega} />
           <select disabled={!usuarios.length} name="Responsable" onChange={updateDraft(setProjectDraft)} required value={projectDraft.Responsable}>
@@ -202,7 +176,7 @@ function App() {
 
       <section className="workspace">
         <aside className="panel project-list">
-          <div className="section-title"><span>04</span><h2>Proyectos</h2></div>
+          <div className="section-title"><span>03</span><h2>Proyectos</h2></div>
           {proyectos.map((project) => (
             <button className={project.id === Number(selectedProjectId) ? 'project-card active' : 'project-card'} key={project.id} onClick={() => setSelectedProjectId(String(project.id))} type="button">
               <strong>{project.Codigo}</strong><small>{project.Cliente_Nombre || `Cliente #${project.Id_Cliente}`}</small><span>{money.format(Number(project.Total || 0))}</span>
@@ -212,7 +186,7 @@ function App() {
         </aside>
 
         <section className="panel budget-builder">
-          <div className="section-title"><span>05</span><h2>Presupuesto</h2></div>
+          <div className="section-title"><span>04</span><h2>Presupuesto</h2></div>
           {selectedProject ? (<>
             <div className="budget-summary"><div><p>Proyecto seleccionado</p><h3>{selectedProject.Codigo}</h3><small>Responsable: {selectedProject.Responsable_Nombre || selectedProject.Responsable}</small></div><strong>{money.format(total)}</strong></div>
             <form className="item-form" onSubmit={createElemento}>
