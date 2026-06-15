@@ -1,6 +1,11 @@
 const db = require('../config/db');
 
 
+const normalizeOptionalInteger = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  return Number(value);
+};
+
 const projectSelect = `
   SELECT p.*, c.Nombre AS Cliente_Nombre, u.nombre AS Responsable_Nombre,
     COALESCE(SUM(e.Cantidad * e.Medida * e.Precio), 0) AS Total
@@ -34,7 +39,8 @@ exports.findOne = async (req, res, next) => {
 exports.create = async (req, res, next) => {
   try {
 
-    const { Codigo, Fecha_entrega, Colaboradores = null, Responsable, Id_Cliente } = req.body;
+    const { Codigo, Fecha_entrega, Responsable, Id_Cliente } = req.body;
+    const Colaboradores = normalizeOptionalInteger(req.body.Colaboradores);
     if (!Codigo || !Fecha_entrega || !Responsable || !Id_Cliente) {
       return res.status(400).json({ message: 'Codigo, Fecha_entrega, Responsable e Id_Cliente son obligatorios' });
     }
@@ -51,7 +57,8 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { Codigo, Fecha_entrega, Colaboradores = null, Responsable, Id_Cliente } = req.body;
+    const { Codigo, Fecha_entrega, Responsable, Id_Cliente } = req.body;
+    const Colaboradores = normalizeOptionalInteger(req.body.Colaboradores);
     const [result] = await db.query(
       'UPDATE proyectos SET Codigo = ?, Fecha_entrega = ?, Colaboradores = ?, Responsable = ?, Id_Cliente = ? WHERE id = ?',
       [Codigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente, req.params.id]
