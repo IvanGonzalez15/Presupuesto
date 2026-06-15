@@ -8,7 +8,7 @@ const today = new Date().toISOString().slice(0, 10)
 
 const initialClient = { id: '', Nombre: '', Persona_contacto: '', Email_contacto: '', Numero_contacto: '' }
 const initialProject = { Codigo: '', Fecha_entrega: today, Colaboradores: '', Responsable: '', Id_Cliente: '' }
-const initialItem = { Nombre: '', Ref: '', Cantidad: 1, Medida: 1, Unidad_de_medida: 'ud', Precio: 0 }
+const initialItem = { Nombre: '', Foto: '', Cantidad: 1, Unidad_de_medida: 'ud', Precio: 0, medida_metro_cuadrado: 0, medida_metro_cubico: 0 }
 
 function App() {
   const [clientes, setClientes] = useState([])
@@ -32,7 +32,7 @@ function App() {
   )
 
   const total = useMemo(
-    () => projectItems.reduce((sum, item) => sum + item.Cantidad * item.Medida * item.Precio, 0),
+    () => projectItems.reduce((sum, item) => sum + item.Cantidad * item.Precio, 0),
     [projectItems],
   )
 
@@ -120,8 +120,9 @@ function App() {
       Id_proyecto: Number(selectedProjectId),
       Id_usuario_creador: selectedProject?.Responsable || usuarios[0]?.id || 1,
       Cantidad: Number(itemDraft.Cantidad),
-      Medida: Number(itemDraft.Medida),
       Precio: Number(itemDraft.Precio),
+      medida_metro_cuadrado: Number(itemDraft.medida_metro_cuadrado),
+      medida_metro_cubico: Number(itemDraft.medida_metro_cubico),
     }
 
     try {
@@ -190,15 +191,16 @@ function App() {
           {selectedProject ? (<>
             <div className="budget-summary"><div><p>Proyecto seleccionado</p><h3>{selectedProject.Codigo}</h3><small>Responsable: {selectedProject.Responsable_Nombre || selectedProject.Responsable}</small></div><strong>{money.format(total)}</strong></div>
             <form className="item-form" onSubmit={createElemento}>
-              <input name="Nombre" onChange={updateDraft(setItemDraft)} placeholder="Concepto" required value={itemDraft.Nombre} />
-              <input name="Ref" onChange={updateDraft(setItemDraft)} placeholder="Referencia" required value={itemDraft.Ref} />
-              <input min="1" name="Cantidad" onChange={updateDraft(setItemDraft)} type="number" value={itemDraft.Cantidad} />
-              <input min="1" name="Medida" onChange={updateDraft(setItemDraft)} type="number" value={itemDraft.Medida} />
-              <input name="Unidad_de_medida" onChange={updateDraft(setItemDraft)} value={itemDraft.Unidad_de_medida} />
-              <input min="0" name="Precio" onChange={updateDraft(setItemDraft)} step="0.01" type="number" value={itemDraft.Precio} />
+              <input name="Nombre" onChange={updateDraft(setItemDraft)} placeholder="Nombre" required value={itemDraft.Nombre} />
+              <input name="Foto" onChange={updateDraft(setItemDraft)} placeholder="URL de foto" value={itemDraft.Foto} />
+              <input min="1" name="Cantidad" onChange={updateDraft(setItemDraft)} placeholder="Cantidad" type="number" value={itemDraft.Cantidad} />
+              <input name="Unidad_de_medida" onChange={updateDraft(setItemDraft)} placeholder="Unidad" value={itemDraft.Unidad_de_medida} />
+              <input min="0" name="Precio" onChange={updateDraft(setItemDraft)} placeholder="Precio" step="0.01" type="number" value={itemDraft.Precio} />
+              <input min="0" name="medida_metro_cuadrado" onChange={updateDraft(setItemDraft)} placeholder="m²" step="0.01" type="number" value={itemDraft.medida_metro_cuadrado} />
+              <input min="0" name="medida_metro_cubico" onChange={updateDraft(setItemDraft)} placeholder="m³" step="0.01" type="number" value={itemDraft.medida_metro_cubico} />
               <button type="submit">Añadir partida</button>
             </form>
-            <div className="items-table">{projectItems.map((item) => <article key={item.id}><div><strong>{item.Nombre}</strong><small>{item.Ref}</small></div><span>{item.Cantidad} × {item.Medida} {item.Unidad_de_medida}</span><strong>{money.format(item.Cantidad * item.Medida * item.Precio)}</strong></article>)}{!projectItems.length && <p className="empty-state">Aún no hay partidas para este proyecto.</p>}</div>
+            <div className="items-table">{projectItems.map((item) => <article key={item.id}>{item.Foto ? <img alt={item.Nombre} className="item-photo" src={item.Foto} /> : <div className="item-photo placeholder">Sin foto</div>}<div><strong>{item.Nombre}</strong><small>Ref. autocreada: {item.Ref}</small><small>{item.Cantidad} {item.Unidad_de_medida} · {money.format(Number(item.Precio))} unidad</small><small>{Number(item.medida_metro_cuadrado || 0)} m² · {Number(item.medida_metro_cubico || 0)} m³</small></div><strong>{money.format(item.Cantidad * item.Precio)}</strong></article>)}{!projectItems.length && <p className="empty-state">Aún no hay partidas para este proyecto.</p>}</div>
           </>) : <p className="empty-state">Crea o selecciona un proyecto para empezar un presupuesto.</p>}
         </section>
       </section>
