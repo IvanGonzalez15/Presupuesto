@@ -29,6 +29,7 @@ exports.findOne = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
+
     const cliente = normalizeCliente(req.body);
     if (!cliente.id || !cliente.Nombre) {
       return res.status(400).json({ message: 'Los campos id y Nombre son obligatorios' });
