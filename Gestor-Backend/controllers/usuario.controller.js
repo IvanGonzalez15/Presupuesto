@@ -1,5 +1,6 @@
 const db = require('../config/db');
 
+
 exports.findAll = async (_req, res, next) => {
   try {
     const [rows] = await db.query(
@@ -30,6 +31,7 @@ exports.create = async (req, res, next) => {
     if (!nombre || !password_hash || !rol) {
       return res.status(400).json({ message: 'nombre, password_hash y rol son obligatorios' });
     }
+
 
     const [result] = await db.query(
       'INSERT INTO usuarios (nombre, email, password_hash, rol, Activo) VALUES (?, ?, ?, ?, ?)',
