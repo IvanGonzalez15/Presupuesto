@@ -32,10 +32,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false
     },
-    Medida: {
-      type: DataTypes.INTEGER,
-      allowNull: false
-    },
     Unidad_de_medida: {
       type: DataTypes.STRING(45),
       allowNull: false
@@ -43,6 +39,16 @@ module.exports = (sequelize, DataTypes) => {
     Precio: {
       type: DataTypes.DOUBLE,
       allowNull: false
+    },
+    medida_metro_cuadrado: {
+      type: DataTypes.DOUBLE,
+      allowNull: false,
+      defaultValue: 0
+    },
+    medida_metro_cubico: {
+      type: DataTypes.DOUBLE,
+      allowNull: false,
+      defaultValue: 0
     }
   }, {
     tableName: 'elementos',
