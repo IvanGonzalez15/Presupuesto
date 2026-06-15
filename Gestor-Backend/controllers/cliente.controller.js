@@ -1,21 +1,5 @@
 const db = require('../config/db');
 
-const requireAdministrador = async (req, res) => {
-  const userId = req.get('x-user-id');
-  if (!userId) {
-    res.status(403).json({ message: 'Selecciona un usuario Administrador para realizar esta acción' });
-    return null;
-  }
-
-  const [[usuario]] = await db.query('SELECT id, rol FROM usuarios WHERE id = ?', [userId]);
-  if (!usuario || usuario.rol !== 'Administrador') {
-    res.status(403).json({ message: 'Solo los Administradores pueden crear clientes y proyectos' });
-    return null;
-  }
-
-  return usuario;
-};
-
 const normalizeCliente = (body) => ({
   id: body.id,
   Nombre: body.Nombre,
@@ -45,7 +29,6 @@ exports.findOne = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    if (!(await requireAdministrador(req, res))) return;
 
     const cliente = normalizeCliente(req.body);
     if (!cliente.id || !cliente.Nombre) {

@@ -1,20 +1,5 @@
 const db = require('../config/db');
 
-const requireAdministrador = async (req, res) => {
-  const userId = req.get('x-user-id');
-  if (!userId) {
-    res.status(403).json({ message: 'Selecciona un usuario Administrador para realizar esta acción' });
-    return null;
-  }
-
-  const [[usuario]] = await db.query('SELECT id, rol FROM usuarios WHERE id = ?', [userId]);
-  if (!usuario || usuario.rol !== 'Administrador') {
-    res.status(403).json({ message: 'Solo los Administradores pueden crear clientes y proyectos' });
-    return null;
-  }
-
-  return usuario;
-};
 
 const projectSelect = `
   SELECT p.*, c.Nombre AS Cliente_Nombre, u.nombre AS Responsable_Nombre,
@@ -48,7 +33,6 @@ exports.findOne = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    if (!(await requireAdministrador(req, res))) return;
 
     const { Codigo, Fecha_entrega, Colaboradores = null, Responsable, Id_Cliente } = req.body;
     if (!Codigo || !Fecha_entrega || !Responsable || !Id_Cliente) {
@@ -67,8 +51,6 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    if (!(await requireAdministrador(req, res))) return;
-
     const { Codigo, Fecha_entrega, Colaboradores = null, Responsable, Id_Cliente } = req.body;
     const [result] = await db.query(
       'UPDATE proyectos SET Codigo = ?, Fecha_entrega = ?, Colaboradores = ?, Responsable = ?, Id_Cliente = ? WHERE id = ?',
