@@ -9,17 +9,29 @@ const today = new Date().toISOString().slice(0, 10)
 const initialClient = { id: '', Nombre: '', Persona_contacto: '', Email_contacto: '', Numero_contacto: '' }
 const initialProject = { Codigo: '', Fecha_entrega: today, Colaboradores: '', Responsable: '', Id_Cliente: '' }
 const initialItem = { Nombre: '', Foto: '', Cantidad: 1, Unidad_de_medida: 'ud', Precio: 0, medida_metro_cuadrado: 0, medida_metro_cubico: 0 }
+const initialMaterial = { nombre: '', precio_venta: 0, caracteristicas: '', notas: '' }
 
 function App() {
   const [clientes, setClientes] = useState([])
   const [usuarios, setUsuarios] = useState([])
   const [proyectos, setProyectos] = useState([])
   const [elementos, setElementos] = useState([])
+  const [materiales, setMateriales] = useState([])
   const [selectedProjectId, setSelectedProjectId] = useState('')
   const [status, setStatus] = useState('Cargando datos del backend...')
   const [clientDraft, setClientDraft] = useState(initialClient)
   const [projectDraft, setProjectDraft] = useState(initialProject)
   const [itemDraft, setItemDraft] = useState(initialItem)
+  const [materialDraft, setMaterialDraft] = useState(initialMaterial)
+  const [editingMaterialId, setEditingMaterialId] = useState('')
+  const [currentUserId, setCurrentUserId] = useState('')
+
+  const currentUser = useMemo(
+    () => usuarios.find((user) => user.id === Number(currentUserId)),
+    [usuarios, currentUserId],
+  )
+
+  const isAdmin = ['admin', 'administrador'].includes(String(currentUser?.rol || '').toLowerCase())
 
   const selectedProject = useMemo(
     () => proyectos.find((project) => project.id === Number(selectedProjectId)),
@@ -36,6 +48,8 @@ function App() {
     [projectItems],
   )
 
+  const materialRequestConfig = () => ({ headers: { 'x-user-id': currentUserId } })
+
   const refreshProjects = async () => {
     const { data } = await axios.get(`${API_URL}/proyectos`)
     setProyectos(data)
@@ -45,17 +59,20 @@ function App() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        const [clientesRes, usuariosRes, proyectosRes, elementosRes] = await Promise.all([
+        const [clientesRes, usuariosRes, proyectosRes, elementosRes, materialesRes] = await Promise.all([
           axios.get(`${API_URL}/clientes`),
           axios.get(`${API_URL}/usuarios`),
           axios.get(`${API_URL}/proyectos`),
           axios.get(`${API_URL}/elementos`),
+          axios.get(`${API_URL}/materiales`),
         ])
         setClientes(clientesRes.data)
         setUsuarios(usuariosRes.data)
         setProyectos(proyectosRes.data)
         setElementos(elementosRes.data)
+        setMateriales(materialesRes.data)
         setSelectedProjectId(proyectosRes.data[0]?.id ? String(proyectosRes.data[0].id) : '')
+        setCurrentUserId(usuariosRes.data.find((user) => ['admin', 'administrador'].includes(String(user.rol).toLowerCase()))?.id ? String(usuariosRes.data.find((user) => ['admin', 'administrador'].includes(String(user.rol).toLowerCase())).id) : (usuariosRes.data[0]?.id ? String(usuariosRes.data[0].id) : ''))
         setProjectDraft((current) => ({
           ...current,
           Responsable: usuariosRes.data[0]?.id ? String(usuariosRes.data[0].id) : '',
@@ -111,6 +128,50 @@ function App() {
     }
   }
 
+  const saveMaterial = async (event) => {
+    event.preventDefault()
+    if (!isAdmin) {
+      setStatus('Solo los administradores pueden crear o editar materiales.')
+      return
+    }
+
+    const payload = {
+      ...materialDraft,
+      precio_venta: Number(materialDraft.precio_venta),
+    }
+
+    try {
+      if (editingMaterialId) {
+        const { data } = await axios.put(`${API_URL}/materiales/${editingMaterialId}`, payload, materialRequestConfig())
+        setMateriales((current) => current.map((material) => (material.id === data.id ? data : material)).sort((a, b) => a.nombre.localeCompare(b.nombre)))
+        setStatus(`Material ${data.nombre} actualizado.`)
+      } else {
+        const { data } = await axios.post(`${API_URL}/materiales`, payload, materialRequestConfig())
+        setMateriales((current) => [...current, data].sort((a, b) => a.nombre.localeCompare(b.nombre)))
+        setStatus(`Material ${data.nombre} creado.`)
+      }
+      setMaterialDraft(initialMaterial)
+      setEditingMaterialId('')
+    } catch (error) {
+      setStatus(`No se pudo guardar el material: ${error.response?.data?.message || error.message}`)
+    }
+  }
+
+  const editMaterial = (material) => {
+    setEditingMaterialId(String(material.id))
+    setMaterialDraft({
+      nombre: material.nombre,
+      precio_venta: material.precio_venta,
+      caracteristicas: material.caracteristicas || '',
+      notas: material.notas || '',
+    })
+  }
+
+  const cancelMaterialEdit = () => {
+    setMaterialDraft(initialMaterial)
+    setEditingMaterialId('')
+  }
+
   const createElemento = async (event) => {
     event.preventDefault()
     if (!selectedProjectId) {
@@ -151,8 +212,19 @@ function App() {
           <div><strong>{usuarios.length}</strong><span>usuarios</span></div>
           <div><strong>{clientes.length}</strong><span>clientes</span></div>
           <div><strong>{proyectos.length}</strong><span>proyectos</span></div>
+          <div><strong>{materiales.length}</strong><span>materiales</span></div>
         </div>
       </header>
+
+      <section className="session-bar panel">
+        <label className="field">
+          <span>Usuario activo para permisos</span>
+          <select disabled={!usuarios.length} onChange={(event) => setCurrentUserId(event.target.value)} value={currentUserId}>
+            <option value="">Selecciona usuario</option>{usuarios.map((user) => <option key={user.id} value={user.id}>{user.nombre} · {user.rol}</option>)}
+          </select>
+        </label>
+        <p>{isAdmin ? 'Permisos de administrador activos: puedes crear y editar materiales.' : 'Modo consulta: solo los administradores pueden modificar materiales.'}</p>
+      </section>
 
       <section className="setup-grid">
         <form className="panel setup-card" onSubmit={createCliente}>
@@ -178,9 +250,50 @@ function App() {
         </form>
       </section>
 
+
+      <section className="panel materials-panel">
+        <div className="section-title"><span>03</span><h2>Materiales</h2></div>
+        <form className="material-form" onSubmit={saveMaterial}>
+          <label className="field">
+            <span>Nombre del material <em>Obligatorio</em></span>
+            <input disabled={!isAdmin} name="nombre" onChange={updateDraft(setMaterialDraft)} placeholder="Ej. Tablero MDF" required value={materialDraft.nombre} />
+          </label>
+          <label className="field">
+            <span>Precio de venta</span>
+            <input disabled={!isAdmin} min="0" name="precio_venta" onChange={updateDraft(setMaterialDraft)} step="0.01" type="number" value={materialDraft.precio_venta} />
+          </label>
+          <label className="field">
+            <span>Características</span>
+            <textarea disabled={!isAdmin} name="caracteristicas" onChange={updateDraft(setMaterialDraft)} placeholder="Medidas, acabado, proveedor..." value={materialDraft.caracteristicas} />
+          </label>
+          <label className="field">
+            <span>Notas</span>
+            <textarea disabled={!isAdmin} name="notas" onChange={updateDraft(setMaterialDraft)} placeholder="Observaciones internas" value={materialDraft.notas} />
+          </label>
+          <div className="material-actions">
+            <button disabled={!isAdmin} type="submit">{editingMaterialId ? 'Guardar cambios' : 'Crear material'}</button>
+            {editingMaterialId && <button className="secondary-action" onClick={cancelMaterialEdit} type="button">Cancelar</button>}
+          </div>
+        </form>
+        <div className="materials-list">
+          {materiales.map((material) => (
+            <article key={material.id}>
+              <div>
+                <strong>{material.nombre}</strong>
+                <small>{material.caracteristicas || 'Sin características'}</small>
+                <small>{material.notas || 'Sin notas'}</small>
+              </div>
+              <strong>{money.format(Number(material.precio_venta || 0))}</strong>
+              <button disabled={!isAdmin} onClick={() => editMaterial(material)} type="button">Editar</button>
+            </article>
+          ))}
+          {!materiales.length && <p className="empty-state">Aún no hay materiales registrados.</p>}
+        </div>
+      </section>
+
       <section className="workspace">
         <aside className="panel project-list">
-          <div className="section-title"><span>03</span><h2>Proyectos</h2></div>
+          <div className="section-title"><span>04</span><h2>Proyectos</h2></div>
           {proyectos.map((project) => (
             <button className={project.id === Number(selectedProjectId) ? 'project-card active' : 'project-card'} key={project.id} onClick={() => setSelectedProjectId(String(project.id))} type="button">
               <strong>{project.Codigo}</strong><small>{project.Cliente_Nombre || `Cliente #${project.Id_Cliente}`}</small><span>{money.format(Number(project.Total || 0))}</span>
@@ -190,7 +303,7 @@ function App() {
         </aside>
 
         <section className="panel budget-builder">
-          <div className="section-title"><span>04</span><h2>Presupuesto</h2></div>
+          <div className="section-title"><span>05</span><h2>Presupuesto</h2></div>
           {selectedProject ? (<>
             <div className="budget-summary"><div><p>Proyecto seleccionado</p><h3>{selectedProject.Codigo}</h3><small>Responsable: {selectedProject.Responsable_Nombre || selectedProject.Responsable}</small></div><strong>{money.format(total)}</strong></div>
             <form className="item-form" onSubmit={createElemento}>
