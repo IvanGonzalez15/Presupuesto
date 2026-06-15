@@ -7,6 +7,7 @@ const clienteController = require('./controllers/cliente.controller');
 const elementoController = require('./controllers/elemento.controller');
 const proyectoController = require('./controllers/proyecto.controller');
 const usuarioController = require('./controllers/usuario.controller');
+const { ensureElementoProjectForeignKey } = require('./config/ensureSchema');
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
@@ -41,6 +42,16 @@ app.use((error, _req, res, _next) => {
   });
 });
 
-app.listen(port, () => {
-  console.log(`API de presupuestos escuchando en http://localhost:${port}`);
-});
+const startServer = async () => {
+  try {
+    await ensureElementoProjectForeignKey();
+  } catch (error) {
+    console.error('No se pudo verificar la clave foránea de elementos.Id_proyecto:', error.message);
+  }
+
+  app.listen(port, () => {
+    console.log(`API de presupuestos escuchando en http://localhost:${port}`);
+  });
+};
+
+startServer();
