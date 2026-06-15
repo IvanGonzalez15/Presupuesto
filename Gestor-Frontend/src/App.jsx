@@ -113,7 +113,10 @@ function App() {
 
   const createElemento = async (event) => {
     event.preventDefault()
-    if (!selectedProjectId) return
+    if (!selectedProjectId) {
+      setStatus('Selecciona o crea un proyecto antes de añadir una partida.')
+      return
+    }
 
     const payload = {
       ...itemDraft,
@@ -191,14 +194,67 @@ function App() {
           {selectedProject ? (<>
             <div className="budget-summary"><div><p>Proyecto seleccionado</p><h3>{selectedProject.Codigo}</h3><small>Responsable: {selectedProject.Responsable_Nombre || selectedProject.Responsable}</small></div><strong>{money.format(total)}</strong></div>
             <form className="item-form" onSubmit={createElemento}>
-              <input name="Nombre" onChange={updateDraft(setItemDraft)} placeholder="Nombre" required value={itemDraft.Nombre} />
-              <input name="Foto" onChange={updateDraft(setItemDraft)} placeholder="URL de foto" value={itemDraft.Foto} />
-              <input min="1" name="Cantidad" onChange={updateDraft(setItemDraft)} placeholder="Cantidad" type="number" value={itemDraft.Cantidad} />
-              <input name="Unidad_de_medida" onChange={updateDraft(setItemDraft)} placeholder="Unidad" value={itemDraft.Unidad_de_medida} />
-              <input min="0" name="Precio" onChange={updateDraft(setItemDraft)} placeholder="Precio" step="0.01" type="number" value={itemDraft.Precio} />
-              <input min="0" name="medida_metro_cuadrado" onChange={updateDraft(setItemDraft)} placeholder="m²" step="0.01" type="number" value={itemDraft.medida_metro_cuadrado} />
-              <input min="0" name="medida_metro_cubico" onChange={updateDraft(setItemDraft)} placeholder="m³" step="0.01" type="number" value={itemDraft.medida_metro_cubico} />
-              <button type="submit">Añadir partida</button>
+              <div className="item-form-header">
+                <div>
+                  <span className="form-kicker">Nueva partida</span>
+                  <h3>Añadir elemento al presupuesto</h3>
+                  <p>Rellena solo lo importante: nombre, cantidad, unidad y precio. La referencia se crea automáticamente.</p>
+                </div>
+                <div className="selected-project-pill">Proyecto: <strong>{selectedProject.Codigo}</strong></div>
+              </div>
+
+              <div className="form-section main-fields">
+                <label className="field wide-field">
+                  <span>¿Qué vas a presupuestar? <em>Obligatorio</em></span>
+                  <input name="Nombre" onChange={updateDraft(setItemDraft)} placeholder="Ej. Suministro e instalación de puerta" required value={itemDraft.Nombre} />
+                </label>
+                <label className="field">
+                  <span>Foto o enlace <small>opcional</small></span>
+                  <input name="Foto" onChange={updateDraft(setItemDraft)} placeholder="https://..." value={itemDraft.Foto} />
+                </label>
+              </div>
+
+              <div className="form-section numbers-grid">
+                <label className="field">
+                  <span>Cantidad</span>
+                  <input min="1" name="Cantidad" onChange={updateDraft(setItemDraft)} type="number" value={itemDraft.Cantidad} />
+                </label>
+                <label className="field">
+                  <span>Unidad</span>
+                  <input list="unit-options" name="Unidad_de_medida" onChange={updateDraft(setItemDraft)} placeholder="ud, m, m²..." value={itemDraft.Unidad_de_medida} />
+                  <datalist id="unit-options">
+                    <option value="ud" />
+                    <option value="m" />
+                    <option value="m²" />
+                    <option value="m³" />
+                    <option value="h" />
+                  </datalist>
+                </label>
+                <label className="field price-field">
+                  <span>Precio unitario</span>
+                  <input min="0" name="Precio" onChange={updateDraft(setItemDraft)} step="0.01" type="number" value={itemDraft.Precio} />
+                </label>
+                <div className="line-total-card">
+                  <span>Total estimado</span>
+                  <strong>{money.format(Number(itemDraft.Cantidad || 0) * Number(itemDraft.Precio || 0))}</strong>
+                </div>
+              </div>
+
+              <details className="optional-measures">
+                <summary>Medidas adicionales (si aplican)</summary>
+                <div className="optional-grid">
+                  <label className="field">
+                    <span>Metros cuadrados</span>
+                    <input min="0" name="medida_metro_cuadrado" onChange={updateDraft(setItemDraft)} step="0.01" type="number" value={itemDraft.medida_metro_cuadrado} />
+                  </label>
+                  <label className="field">
+                    <span>Metros cúbicos</span>
+                    <input min="0" name="medida_metro_cubico" onChange={updateDraft(setItemDraft)} step="0.01" type="number" value={itemDraft.medida_metro_cubico} />
+                  </label>
+                </div>
+              </details>
+
+              <button className="primary-action" type="submit">Añadir elemento al presupuesto</button>
             </form>
             <div className="items-table">{projectItems.map((item) => <article key={item.id}>{item.Foto ? <img alt={item.Nombre} className="item-photo" src={item.Foto} /> : <div className="item-photo placeholder">Sin foto</div>}<div><strong>{item.Nombre}</strong><small>Ref. autocreada: {item.Ref}</small><small>{item.Cantidad} {item.Unidad_de_medida} · {money.format(Number(item.Precio))} unidad</small><small>{Number(item.medida_metro_cuadrado || 0)} m² · {Number(item.medida_metro_cubico || 0)} m³</small></div><strong>{money.format(item.Cantidad * item.Precio)}</strong></article>)}{!projectItems.length && <p className="empty-state">Aún no hay partidas para este proyecto.</p>}</div>
           </>) : <p className="empty-state">Crea o selecciona un proyecto para empezar un presupuesto.</p>}
