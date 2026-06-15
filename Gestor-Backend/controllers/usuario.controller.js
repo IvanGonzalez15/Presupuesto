@@ -1,6 +1,5 @@
 const db = require('../config/db');
 
-const ROLES = ['Usuario', 'Moderador', 'Administrador'];
 
 exports.findAll = async (_req, res, next) => {
   try {
@@ -32,9 +31,7 @@ exports.create = async (req, res, next) => {
     if (!nombre || !password_hash || !rol) {
       return res.status(400).json({ message: 'nombre, password_hash y rol son obligatorios' });
     }
-    if (!ROLES.includes(rol)) {
-      return res.status(400).json({ message: `rol debe ser uno de: ${ROLES.join(', ')}` });
-    }
+
 
     const [result] = await db.query(
       'INSERT INTO usuarios (nombre, email, password_hash, rol, Activo) VALUES (?, ?, ?, ?, ?)',
@@ -49,9 +46,6 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const { nombre, email = null, rol, Activo = 1 } = req.body;
-    if (!ROLES.includes(rol)) {
-      return res.status(400).json({ message: `rol debe ser uno de: ${ROLES.join(', ')}` });
-    }
     const [result] = await db.query(
       'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, Activo = ? WHERE id = ?',
       [nombre, email, rol, Activo, req.params.id]
