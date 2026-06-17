@@ -3,12 +3,15 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
-const clienteController = require('./controllers/cliente.controller');
-const elementoController = require('./controllers/elemento.controller');
-const proyectoController = require('./controllers/proyecto.controller');
-const usuarioController = require('./controllers/usuario.controller');
-const materialController = require('./controllers/material.controller');
 const { ensureElementoProjectForeignKey } = require('./config/ensureSchema');
+
+// Routers
+const authRoutes = require('./routes/auth.routes');
+const clienteRoutes = require('./routes/cliente.routes');
+const usuarioRoutes = require('./routes/usuario.routes');
+const proyectoRoutes = require('./routes/proyecto.routes');
+const elementoRoutes = require('./routes/elemento.routes');
+const materialRoutes = require('./routes/material.routes');
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
@@ -18,28 +21,17 @@ const port = process.env.PORT || 3001;
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json());
 
-const bindCrudRoutes = (basePath, controller) => {
-  app.get(basePath, controller.findAll);
-  app.get(`${basePath}/:id`, controller.findOne);
-  app.post(basePath, controller.create);
-  app.put(`${basePath}/:id`, controller.update);
-  app.delete(`${basePath}/:id`, controller.remove);
-};
+// Bind Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/clientes', clienteRoutes);
+app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/proyectos', proyectoRoutes);
+app.use('/api/elementos', elementoRoutes);
+app.use('/api/materiales', materialRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'gestor-presupuestos-api' });
 });
-
-bindCrudRoutes('/api/clientes', clienteController);
-bindCrudRoutes('/api/usuarios', usuarioController);
-bindCrudRoutes('/api/proyectos', proyectoController);
-bindCrudRoutes('/api/elementos', elementoController);
-
-app.get('/api/materiales', materialController.findAll);
-app.get('/api/materiales/:id', materialController.findOne);
-app.post('/api/materiales', materialController.ensureAdmin, materialController.create);
-app.put('/api/materiales/:id', materialController.ensureAdmin, materialController.update);
-app.delete('/api/materiales/:id', materialController.ensureAdmin, materialController.remove);
 
 app.use((error, _req, res, _next) => {
   console.error(error);

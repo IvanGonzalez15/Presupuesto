@@ -8,10 +8,12 @@ const normalizeOptionalInteger = (value) => {
 
 const projectSelect = `
   SELECT p.*, c.Nombre AS Cliente_Nombre, u.nombre AS Responsable_Nombre,
+    colab.nombre AS Colaboradores_Nombre,
     COALESCE(SUM(e.Cantidad * e.Precio), 0) AS Total
   FROM proyectos p
   LEFT JOIN clientes c ON c.id = p.Id_Cliente
   LEFT JOIN usuarios u ON u.id = p.Responsable
+  LEFT JOIN usuarios colab ON colab.id = p.Colaboradores
   LEFT JOIN elementos e ON e.Id_proyecto = p.id
 `;
 

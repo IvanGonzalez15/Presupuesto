@@ -1,6 +1,5 @@
 const db = require('../config/db');
 
-
 exports.findAll = async (_req, res, next) => {
   try {
     const [rows] = await db.query(
@@ -32,7 +31,6 @@ exports.create = async (req, res, next) => {
       return res.status(400).json({ message: 'nombre, password_hash y rol son obligatorios' });
     }
 
-
     const [result] = await db.query(
       'INSERT INTO usuarios (nombre, email, password_hash, rol, Activo) VALUES (?, ?, ?, ?, ?)',
       [nombre, email, password_hash, rol, Activo]
@@ -45,12 +43,22 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { nombre, email = null, rol, Activo = 1 } = req.body;
-    const [result] = await db.query(
-      'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, Activo = ? WHERE id = ?',
-      [nombre, email, rol, Activo, req.params.id]
-    );
-    if (!result.affectedRows) return res.status(404).json({ message: 'Usuario no encontrado' });
+    const { nombre, email = null, password_hash, rol, Activo = 1 } = req.body;
+    
+    if (password_hash) {
+      const [result] = await db.query(
+        'UPDATE usuarios SET nombre = ?, email = ?, password_hash = ?, rol = ?, Activo = ? WHERE id = ?',
+        [nombre, email, password_hash, rol, Activo, req.params.id]
+      );
+      if (!result.affectedRows) return res.status(404).json({ message: 'Usuario no encontrado' });
+    } else {
+      const [result] = await db.query(
+        'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, Activo = ? WHERE id = ?',
+        [nombre, email, rol, Activo, req.params.id]
+      );
+      if (!result.affectedRows) return res.status(404).json({ message: 'Usuario no encontrado' });
+    }
+    
     res.json({ id: Number(req.params.id), nombre, email, rol, Activo });
   } catch (error) {
     next(error);
