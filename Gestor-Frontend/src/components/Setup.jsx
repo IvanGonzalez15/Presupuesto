@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 export default function Setup({
   clientes,
   usuarios,
+  proyectos = [],
   clientDraft,
   projectDraft,
   updateDraft,
@@ -13,13 +14,17 @@ export default function Setup({
   onUserCreate,
   statusMessage
 }) {
-  const [userDraft, setUserDraft] = useState({ nombre: '', email: '', password: '', rol: 'Admin' });
+  const [userDraft, setUserDraft] = useState({ nombre: '', email: '', password: '', rol: 'Admin', proyectoId: '' });
 
   const handleUserSubmit = (e) => {
     e.preventDefault();
     if (userDraft.nombre.trim() && userDraft.password.trim() && userDraft.rol) {
+      if (userDraft.rol === 'Colaborador' && !userDraft.proyectoId) {
+        alert('Por favor, selecciona un proyecto para el colaborador.');
+        return;
+      }
       onUserCreate(userDraft);
-      setUserDraft({ nombre: '', email: '', password: '', rol: 'Admin' });
+      setUserDraft({ nombre: '', email: '', password: '', rol: 'Admin', proyectoId: '' });
     }
   };
 
@@ -37,7 +42,7 @@ export default function Setup({
 
         <form className="panel setup-card" onSubmit={createProyecto}>
           <div className="section-title"><span>02</span><h2>Crear proyecto</h2></div>
-          <input name="Codigo" onChange={updateDraft(setProjectDraft)} placeholder="Código proyecto" required value={projectDraft.Codigo} />
+          <input name="Codigo" onChange={updateDraft(setProjectDraft)} placeholder="Nombre del proyecto" required value={projectDraft.Codigo} />
           <input name="Fecha_entrega" onChange={updateDraft(setProjectDraft)} required type="date" value={projectDraft.Fecha_entrega} />
           <select disabled={!usuarios.length} name="Responsable" onChange={updateDraft(setProjectDraft)} required value={projectDraft.Responsable}>
             <option value="">Responsable</option>
@@ -90,7 +95,7 @@ export default function Setup({
             <span>Rol</span>
             <select
               value={userDraft.rol}
-              onChange={(e) => setUserDraft({ ...userDraft, rol: e.target.value })}
+              onChange={(e) => setUserDraft({ ...userDraft, rol: e.target.value, proyectoId: e.target.value === 'Colaborador' ? userDraft.proyectoId : '' })}
               style={{ padding: '8px' }}
             >
               <option value="Admin">Admin</option>
@@ -98,6 +103,24 @@ export default function Setup({
               <option value="Viewer">Viewer</option>
             </select>
           </label>
+          {userDraft.rol === 'Colaborador' && (
+            <label className="field">
+              <span>Proyecto Asignado</span>
+              <select
+                value={userDraft.proyectoId}
+                onChange={(e) => setUserDraft({ ...userDraft, proyectoId: e.target.value })}
+                style={{ padding: '8px' }}
+                required
+              >
+                <option value="">Selecciona proyecto</option>
+                {proyectos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.Codigo} - {p.proyecto || 'Sin nombre'}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <button type="submit" style={{ padding: '10px', background: '#0f172a', color: 'white', border: 0, borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
             Registrar Usuario
           </button>

@@ -1,17 +1,30 @@
 const db = require('../config/db');
+const { parseElementExtraData, calcularPrecioPieza } = require('../helpers/calc.helper');
 
-const normalizeElemento = (body) => ({
-  Nombre: body.Nombre,
-  Foto: body.Foto || null,
-  Ref: body.Ref,
-  Id_usuario_creador: body.Id_usuario_creador,
-  Id_proyecto: body.Id_proyecto,
-  Cantidad: body.Cantidad,
-  Unidad_de_medida: body.Unidad_de_medida,
-  Precio: body.Precio,
-  medida_metro_cuadrado: body.medida_metro_cuadrado ?? 0,
-  medida_metro_cubico: body.medida_metro_cubico ?? 0
-});
+const normalizeElemento = (body) => {
+  const base = {
+    Nombre: body.Nombre,
+    Foto: body.Foto || null,
+    Ref: body.Ref,
+    Id_usuario_creador: body.Id_usuario_creador,
+    Id_proyecto: body.Id_proyecto,
+    Cantidad: Number(body.Cantidad || 1),
+    Unidad_de_medida: body.Unidad_de_medida || 'ud',
+    Precio: Number(body.Precio || 0),
+    medida_metro_cuadrado: Number(body.medida_metro_cuadrado || 0),
+    medida_metro_cubico: Number(body.medida_metro_cubico || 0)
+  };
+
+  if (base.Foto && base.Foto.trim().startsWith('{')) {
+    const extra = parseElementExtraData(base.Foto);
+    const calculated = calcularPrecioPieza(extra);
+    base.medida_metro_cuadrado = calculated.medida_metro_cuadrado;
+    base.medida_metro_cubico = calculated.medida_metro_cubico;
+    base.Precio = calculated.precio;
+  }
+
+  return base;
+};
 
 exports.findAll = async (req, res, next) => {
   try {
@@ -39,23 +52,24 @@ exports.findOne = async (req, res, next) => {
   }
 };
 
-const firstInitial = (value) => String(value || '').trim().charAt(0).toUpperCase() || 'X';
-
 const createReferencia = async (projectId) => {
   const [[project]] = await db.query(
-    `SELECT c.Nombre AS Cliente_Nombre, p.Codigo AS Proyecto_Nombre, u.nombre AS Responsable_Nombre
-     FROM proyectos p
-     LEFT JOIN clientes c ON c.id = p.Id_Cliente
-     LEFT JOIN usuarios u ON u.id = p.Responsable
-     WHERE p.id = ?`,
+    'SELECT Codigo FROM proyectos WHERE id = ?',
     [projectId]
   );
 
   if (!project) return null;
 
-  const prefix = `${firstInitial(project.Cliente_Nombre)}${firstInitial(project.Proyecto_Nombre)}${firstInitial(project.Responsable_Nombre)}`;
-  const [[{ total }]] = await db.query('SELECT COUNT(*) AS total FROM elementos WHERE Id_proyecto = ?', [projectId]);
-  return `${prefix}-${total}`;
+  // Count elements associated with this project to obtain sequential ID
+  const [[{ count }]] = await db.query(
+    'SELECT COUNT(*) AS count FROM elementos WHERE Id_proyecto = ?',
+    [projectId]
+  );
+
+  const nextNum = count + 1;
+  const suffix = String(nextNum).padStart(3, '0');
+
+  return `${project.Codigo}-${suffix}`;
 };
 
 exports.create = async (req, res, next) => {

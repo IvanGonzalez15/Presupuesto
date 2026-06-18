@@ -1,6 +1,5 @@
 const db = require('../config/db');
 
-
 const normalizeOptionalInteger = (value) => {
   if (value === undefined || value === null || value === '') return null;
   return Number(value);
@@ -40,18 +39,40 @@ exports.findOne = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-
-    const { Codigo, Fecha_entrega, Responsable, Id_Cliente } = req.body;
+    const { Fecha_entrega, Responsable, Id_Cliente } = req.body;
+    const nombreProyecto = req.body.proyecto || req.body.Codigo;
     const Colaboradores = normalizeOptionalInteger(req.body.Colaboradores);
-    if (!Codigo || !Fecha_entrega || !Responsable || !Id_Cliente) {
-      return res.status(400).json({ message: 'Codigo, Fecha_entrega, Responsable e Id_Cliente son obligatorios' });
+
+    if (!nombreProyecto || !Fecha_entrega || !Responsable || !Id_Cliente) {
+      return res.status(400).json({ message: 'El nombre del proyecto (proyecto), Fecha_entrega, Responsable e Id_Cliente son obligatorios' });
     }
 
+    // Fetch client and responsable names to construct the project code
+    const [[clientRow]] = await db.query('SELECT Nombre FROM clientes WHERE id = ?', [Id_Cliente]);
+    const [[userRow]] = await db.query('SELECT nombre FROM usuarios WHERE id = ?', [Responsable]);
+
+    const firstLetter = (str) => String(str || '').trim().charAt(0).toUpperCase() || 'X';
+
+    const clientChar = firstLetter(clientRow?.Nombre);
+    const projectChar = firstLetter(nombreProyecto);
+    const respChar = firstLetter(userRow?.nombre);
+
+    const calculatedCodigo = `${clientChar}${projectChar}-${respChar}`;
+
     const [result] = await db.query(
-      'INSERT INTO proyectos (Codigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente) VALUES (?, ?, ?, ?, ?)',
-      [Codigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente]
+      'INSERT INTO proyectos (proyecto, Codigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente) VALUES (?, ?, ?, ?, ?, ?)',
+      [nombreProyecto, calculatedCodigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente]
     );
-    res.status(201).json({ id: result.insertId, Codigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente });
+
+    res.status(201).json({
+      id: result.insertId,
+      proyecto: nombreProyecto,
+      Codigo: calculatedCodigo,
+      Fecha_entrega,
+      Colaboradores,
+      Responsable,
+      Id_Cliente
+    });
   } catch (error) {
     next(error);
   }
@@ -59,14 +80,41 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { Codigo, Fecha_entrega, Responsable, Id_Cliente } = req.body;
+    const { Fecha_entrega, Responsable, Id_Cliente } = req.body;
+    const nombreProyecto = req.body.proyecto || req.body.Codigo;
     const Colaboradores = normalizeOptionalInteger(req.body.Colaboradores);
+
+    if (!nombreProyecto || !Fecha_entrega || !Responsable || !Id_Cliente) {
+      return res.status(400).json({ message: 'El nombre del proyecto (proyecto), Fecha_entrega, Responsable e Id_Cliente son obligatorios' });
+    }
+
+    const [[clientRow]] = await db.query('SELECT Nombre FROM clientes WHERE id = ?', [Id_Cliente]);
+    const [[userRow]] = await db.query('SELECT nombre FROM usuarios WHERE id = ?', [Responsable]);
+
+    const firstLetter = (str) => String(str || '').trim().charAt(0).toUpperCase() || 'X';
+
+    const clientChar = firstLetter(clientRow?.Nombre);
+    const projectChar = firstLetter(nombreProyecto);
+    const respChar = firstLetter(userRow?.nombre);
+
+    const calculatedCodigo = `${clientChar}${projectChar}-${respChar}`;
+
     const [result] = await db.query(
-      'UPDATE proyectos SET Codigo = ?, Fecha_entrega = ?, Colaboradores = ?, Responsable = ?, Id_Cliente = ? WHERE id = ?',
-      [Codigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente, req.params.id]
+      'UPDATE proyectos SET proyecto = ?, Codigo = ?, Fecha_entrega = ?, Colaboradores = ?, Responsable = ?, Id_Cliente = ? WHERE id = ?',
+      [nombreProyecto, calculatedCodigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente, req.params.id]
     );
+
     if (!result.affectedRows) return res.status(404).json({ message: 'Proyecto no encontrado' });
-    res.json({ id: Number(req.params.id), Codigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente });
+
+    res.json({
+      id: Number(req.params.id),
+      proyecto: nombreProyecto,
+      Codigo: calculatedCodigo,
+      Fecha_entrega,
+      Colaboradores,
+      Responsable,
+      Id_Cliente
+    });
   } catch (error) {
     next(error);
   }

@@ -74,6 +74,20 @@ function App() {
     [currentUser]
   );
 
+  const isViewer = useMemo(
+    () => ['viewer', 'observador', 'lector'].includes(String(currentUser?.rol || '').toLowerCase()),
+    [currentUser]
+  );
+
+  const [selectedClientIdFilter, setSelectedClientIdFilter] = useState('');
+
+  const filteredProyectos = useMemo(() => {
+    if (isAdmin && selectedClientIdFilter) {
+      return proyectos.filter((p) => String(p.Id_Cliente) === String(selectedClientIdFilter));
+    }
+    return proyectos;
+  }, [proyectos, isAdmin, selectedClientIdFilter]);
+
   const selectedProject = useMemo(
     () => proyectos.find((project) => project.id === Number(selectedProjectId)),
     [proyectos, selectedProjectId]
@@ -89,28 +103,7 @@ function App() {
     [projectItems]
   );
 
-  const totalManufacturingCost = useMemo(() => {
-    return projectItems.reduce((sum, item) => {
-      const extra = parseElementExtraData(item);
-      const m2 = item.medida_metro_cuadrado || 0;
-      const m3 = item.medida_metro_cubico || 0;
-      const costPorex = extra.materials.porex ? m3 * 90.0 : 0;
-      const costLineX = extra.materials.linex ? m2 * 10.0 : 0;
-      const costFibra = extra.materials.fibra ? m2 * 12.0 : 0;
-      const costPintura = extra.materials.pintura ? m2 * 25.0 : 0;
-      const costMortero = extra.materials.mortero ? m2 * 190.0 : 0;
-      const costOficina = Number(extra.hours.oficina || 0) * 25.0;
-      const costProgramacion = Number(extra.hours.programacion || 0) * 35.0;
-      const costMecanizado = Number(extra.hours.mecanizado || 0) * 15.0;
-      const costPrepost = Number(extra.hours.prepost || 0) * 25.0;
-      const costEsculpir = Number(extra.hours.esculpir || 0) * 25.0;
-      const costLineXLabor = extra.materials.linex ? Number(extra.hours.linex || 0) * 25.0 : 0;
-      const costFibraLabor = extra.materials.fibra ? Number(extra.hours.fibra || 0) * 25.0 : 0;
-      
-      const unitMfgCost = costPorex + costLineX + costFibra + costPintura + costMortero + costOficina + costProgramacion + costMecanizado + costPrepost + costEsculpir + costLineXLabor + costFibraLabor;
-      return sum + (unitMfgCost * item.Cantidad);
-    }, 0);
-  }, [projectItems]);
+  const totalManufacturingCost = useMemo(() => total, [total]);
 
   const requestConfig = useMemo(() => ({
     headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -185,8 +178,12 @@ function App() {
   const handleUserCreate = async (newUser) => {
     try {
       await axios.post(`${API_URL}/auth/register`, newUser, requestConfig);
-      const { data } = await axios.get(`${API_URL}/usuarios`, requestConfig);
-      setUsuarios(data);
+      const [usersRes, projectsRes] = await Promise.all([
+        axios.get(`${API_URL}/usuarios`, requestConfig),
+        axios.get(`${API_URL}/proyectos`, requestConfig)
+      ]);
+      setUsuarios(usersRes.data);
+      setProyectos(projectsRes.data);
       setStatus(`Usuario ${newUser.nombre} registrado correctamente.`);
     } catch (error) {
       setStatus(`No se pudo crear el usuario: ${error.response?.data?.message || error.message}`);
@@ -291,6 +288,10 @@ function App() {
   };
 
   const deleteProject = async (id) => {
+    if (!isAdmin) {
+      setStatus('Solo los administradores pueden eliminar proyectos.');
+      return;
+    }
     if (!window.confirm('¿Seguro que quieres eliminar este proyecto y todos sus elementos?')) return;
     try {
       await axios.delete(`${API_URL}/proyectos/${id}`, requestConfig);
@@ -404,53 +405,25 @@ function App() {
       extra[key] = val;
     }
 
-    let l = Number(extra.largo || 0);
-    let w = Number(extra.ancho || 0);
-    let h = Number(extra.alto || 0);
-    if (key === 'largo') l = Number(val || 0);
-    if (key === 'ancho') w = Number(val || 0);
-    if (key === 'alto') h = Number(val || 0);
+    if (key === 'largo' || key === 'ancho' || key === 'alto') {
+      extra[key] = Number(val || 0);
+    }
 
-    const calculatedM3 = (l / 1000) * (w / 1000) * (h / 1000);
-    const calculatedM2 = 2 * (((l / 1000) * (w / 1000)) + ((l / 1000) * (h / 1000)) + ((w / 1000) * (h / 1000)));
-
-    extra.largo = l;
-    extra.ancho = w;
-    extra.alto = h;
-
-    const costPorex = extra.materials.porex ? calculatedM3 * 90.0 : 0;
-    const costLineX = extra.materials.linex ? calculatedM2 * 10.0 : 0;
-    const costFibra = extra.materials.fibra ? calculatedM2 * 12.0 : 0;
-    const costPintura = extra.materials.pintura ? calculatedM2 * 25.0 : 0;
-    const costMortero = extra.materials.mortero ? calculatedM2 * 190.0 : 0;
-
-    const costOficina = Number(extra.hours.oficina || 0) * 25.0;
-    const costProgramacion = Number(extra.hours.programacion || 0) * 35.0;
-    const costMecanizado = Number(extra.hours.mecanizado || 0) * 15.0;
-    const costPrepost = Number(extra.hours.prepost || 0) * 25.0;
-    const costEsculpir = Number(extra.hours.esculpir || 0) * 25.0;
-    const costLineXLabor = extra.materials.linex ? Number(extra.hours.linex || 0) * 25.0 : 0;
-    const costFibraLabor = extra.materials.fibra ? Number(extra.hours.fibra || 0) * 25.0 : 0;
-
-    const newPrice = costPorex + costLineX + costFibra + costPintura + costMortero + costOficina + costProgramacion + costMecanizado + costPrepost + costEsculpir + costLineXLabor + costFibraLabor;
     const updatedFoto = serializeElementExtraData(extra);
     
     try {
       const payload = {
         ...item,
-        Foto: updatedFoto,
-        Precio: newPrice > 0 ? newPrice : item.Precio,
-        medida_metro_cuadrado: calculatedM2,
-        medida_metro_cubico: calculatedM3
+        Foto: updatedFoto
       };
-      await axios.put(`${API_URL}/elementos/${item.id}`, payload, requestConfig);
+      const { data } = await axios.put(`${API_URL}/elementos/${item.id}`, payload, requestConfig);
       
       setElementos((current) => current.map((e) => e.id === item.id ? { 
         ...e, 
-        Foto: updatedFoto, 
-        Precio: payload.Precio, 
-        medida_metro_cuadrado: payload.medida_metro_cuadrado, 
-        medida_metro_cubico: payload.medida_metro_cubico 
+        Foto: data.Foto, 
+        Precio: data.Precio, 
+        medida_metro_cuadrado: data.medida_metro_cuadrado, 
+        medida_metro_cubico: data.medida_metro_cubico 
       } : e));
       await refreshProjects();
     } catch (err) {
@@ -571,9 +544,11 @@ function App() {
           <button className={activeTab === 'materiales' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('materiales')} type="button">
             Base de Materiales
           </button>
-          <button className={activeTab === 'registro' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('registro')} type="button">
-            Clientes y Setup
-          </button>
+          {isAdmin && (
+            <button className={activeTab === 'registro' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('registro')} type="button">
+              Clientes y Setup
+            </button>
+          )}
         </nav>
 
         <div className="sidebar-footer">
@@ -596,10 +571,11 @@ function App() {
           </div>
         </header>
 
-        {activeTab === 'registro' && (
+        {activeTab === 'registro' && isAdmin && (
           <Setup
             clientes={clientes}
             usuarios={usuarios}
+            proyectos={proyectos}
             clientDraft={clientDraft}
             projectDraft={projectDraft}
             updateDraft={updateDraft}
@@ -630,7 +606,7 @@ function App() {
 
         {activeTab === 'presupuestos' && (
           <Presupuestos
-            proyectos={proyectos}
+            proyectos={filteredProyectos}
             selectedProjectId={selectedProjectId}
             setSelectedProjectId={setSelectedProjectId}
             deleteProject={deleteProject}
@@ -656,6 +632,10 @@ function App() {
             deleteElemento={deleteElemento}
             updateElementExtraValue={updateElementExtraValue}
             parseElementExtraData={parseElementExtraData}
+            isAdmin={isAdmin}
+            isViewer={isViewer}
+            selectedClientIdFilter={selectedClientIdFilter}
+            setSelectedClientIdFilter={setSelectedClientIdFilter}
           />
         )}
       </main>
