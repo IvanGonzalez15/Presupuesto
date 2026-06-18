@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const hashPasswordMiddleware = require('../middlewares/bcrypt.middleware');
+const authenticateToken = require('../middlewares/auth.middleware');
+const authorizeRoles = require('../middlewares/role.middleware');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -43,9 +45,10 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-router.post('/register', hashPasswordMiddleware, async (req, res, next) => {
+// Register route restricted to Admin only for creating new users securely
+router.post('/register', authenticateToken, authorizeRoles('Admin'), hashPasswordMiddleware, async (req, res, next) => {
   try {
-    const { nombre, email = null, password_hash, rol, Activo = 1 } = req.body;
+    const { nombre, email = null, password_hash, rol, Activo = 1, proyectoId } = req.body;
     if (!nombre || !password_hash || !rol) {
       return res.status(400).json({ message: 'nombre, password y rol son obligatorios' });
     }
@@ -55,7 +58,16 @@ router.post('/register', hashPasswordMiddleware, async (req, res, next) => {
       [nombre, email, password_hash, rol, Activo]
     );
 
-    res.status(201).json({ id: result.insertId, nombre, email, rol, Activo });
+    const newUserId = result.insertId;
+
+    if (String(rol).toLowerCase() === 'colaborador' && proyectoId) {
+      await db.query(
+        'UPDATE proyectos SET Colaboradores = ? WHERE id = ?',
+        [newUserId, Number(proyectoId)]
+      );
+    }
+
+    res.status(201).json({ id: newUserId, nombre, email, rol, Activo });
   } catch (error) {
     next(error);
   }
