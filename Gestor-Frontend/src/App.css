@@ -1,21 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 /* Base Reset and Typography */
 :root {
-  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --color-bg: #f8fafc;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-border: #cbd5e1;
-  --color-border-light: #e2e8f0;
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Default Theme: Dark (Industrial Precision) */
+:root, :root[data-theme="dark"] {
+  --color-bg: #101415;
+  --color-text-primary: #e0e3e5;
+  --color-text-secondary: #bec9c8;
+  --color-border: #3e4948;
+  --color-border-light: #272a2c;
   
-  --color-primary: #1e293b;
-  --color-primary-hover: #334155;
-  --color-accent: #0284c7;
-  --color-accent-hover: #0369a1;
-  --color-success: #0d9488;
-  --color-success-hover: #0f766e;
-  --color-danger: #e11d48;
-  --color-danger-hover: #be123c;
-  --color-danger-bg: #fff1f2;
+  --color-primary: #83d4d3;
+  --color-primary-hover: #9ff1f0;
+  --color-accent: #83d4d3;
+  --color-accent-hover: #7df5f5;
+  --color-success: #5dd9d8;
+  --color-success-hover: #7df5f5;
+  
+  --color-danger: #ffb4ab;
+  --color-danger-hover: #ffdad6;
+  --color-danger-bg: #93000a;
+  
+  /* Additional Industrial Precision variables */
+  --color-surface: #101415;
+  --color-surface-dim: #101415;
+  --color-surface-bright: #363a3b;
+  --color-surface-container: #1d2022;
+  --color-surface-container-high: #272a2c;
+  --color-surface-container-highest: #323537;
+  --color-surface-container-low: #191c1e;
+  --color-surface-container-lowest: #0b0f10;
+  --color-on-surface: #e0e3e5;
+  --color-on-surface-variant: #bec9c8;
+  
+  --color-sidebar-bg: #101415;
+  --color-sidebar-border: #3e4948;
+  --color-sidebar-profile: #1d2022;
+  --color-sidebar-text: #e0e3e5;
+  --color-sidebar-text-secondary: #bec9c8;
+  --color-nav-hover: #272a2c;
+  --color-nav-active: #006b6b; /* Primary container Deep Teal */
+  --color-nav-active-text: #97e8e8;
+  
+  --color-sheet-border: #3e4948;
+  --color-sheet-header-bg: #191c1e;
+  --color-sheet-cell-bg: #101415;
+  --color-sheet-cell-text: #e0e3e5;
+
+  --color-info-bg: #1d2022;
+  --color-info-border: #83d4d3;
+  --color-info-text: #97e8e8;
+  
+  --rounded-sm: 2px;
+  --rounded-md: 4px;
+  --rounded-lg: 6px;
+  --rounded-xl: 8px;
+}
+
+:root[data-theme="light"] {
+  --color-bg: #f4f7f6;
+  --color-text-primary: #101415;
+  --color-text-secondary: #3e4948;
+  --color-border: #889392;
+  --color-border-light: #bec9c8;
+  
+  --color-primary: #006b6b; /* Teal 700 */
+  --color-primary-hover: #004f4f;
+  --color-accent: #006b6b;
+  --color-accent-hover: #004f4f;
+  --color-success: #006b6b;
+  --color-success-hover: #004f4f;
+  
+  --color-danger: #ba1a1a;
+  --color-danger-hover: #93000a;
+  --color-danger-bg: #ffdad6;
+  
+  /* Additional Industrial Precision variables */
+  --color-surface: #ffffff;
+  --color-surface-dim: #f5f5f5;
+  --color-surface-bright: #e0e3e5;
+  --color-surface-container: #f0f4f4;
+  --color-surface-container-high: #e2e8e8;
+  --color-surface-container-highest: #d1d8d8;
+  --color-surface-container-low: #f8fafc;
+  --color-surface-container-lowest: #ffffff;
+  --color-on-surface: #101415;
+  --color-on-surface-variant: #3e4948;
+  
+  --color-sidebar-bg: #e2e8e8;
+  --color-sidebar-border: #bec9c8;
+  --color-sidebar-profile: #ffffff;
+  --color-sidebar-text: #101415;
+  --color-sidebar-text-secondary: #3e4948;
+  --color-nav-hover: #d1d8d8;
+  --color-nav-active: #006b6b;
+  --color-nav-active-text: #ffffff;
+  
+  --color-sheet-border: #bec9c8;
+  --color-sheet-header-bg: #e2e8e8;
+  --color-sheet-cell-bg: #ffffff;
+  --color-sheet-cell-text: #101415;
+
+  --color-info-bg: #eff6ff;
+  --color-info-border: #3b82f6;
+  --color-info-text: #1e3a8a;
+  
+  --rounded-sm: 2px;
+  --rounded-md: 4px;
+  --rounded-lg: 6px;
+  --rounded-xl: 8px;
 }
 
 body {
@@ -110,8 +206,8 @@ body {
 /* Panel Containers */
 .panel {
   border: 1px solid var(--color-border-light);
-  border-radius: 8px;
-  background: #ffffff;
+  border-radius: var(--rounded-lg);
+  background: var(--color-surface);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
 }
 
@@ -137,10 +233,11 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  background: #f1f5f9;
-  color: var(--color-text-secondary);
+  background: var(--color-surface-container-high);
+  color: var(--color-primary);
   font-weight: 700;
   font-size: 0.8rem;
+  border: 1px solid var(--color-border-light);
 }
 
 .section-title h2 {
@@ -163,8 +260,8 @@ textarea {
   min-width: 0;
   padding: 8px 12px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  background: white;
+  border-radius: var(--rounded-md);
+  background: var(--color-surface);
   color: var(--color-text-primary);
   font-family: inherit;
   font-size: 0.9rem;
@@ -211,13 +308,13 @@ textarea:disabled {
 }
 
 .secondary-action {
-  background: #e2e8f0;
-  color: #334155;
-  border: 1px solid #cbd5e1;
+  background: var(--color-surface-bright);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
 }
 
 .secondary-action:hover:not(:disabled) {
-  background: #cbd5e1;
+  background: var(--color-surface-container-highest);
 }
 
 /* Setup Grid */
@@ -243,8 +340,8 @@ textarea:disabled {
 .project-item-wrapper {
   display: flex;
   border: 1px solid var(--color-border-light);
-  border-radius: 6px;
-  background: #ffffff;
+  border-radius: var(--rounded-md);
+  background: var(--color-surface);
   overflow: hidden;
   transition: all 0.15s ease;
 }
@@ -255,6 +352,7 @@ textarea:disabled {
 }
 
 .project-item-wrapper.active {
+  background: var(--color-surface-container-high);
   border-color: var(--color-accent);
   box-shadow: 0 0 0 1px var(--color-accent);
 }
@@ -263,7 +361,7 @@ textarea:disabled {
   flex: 1;
   text-align: left;
   border: 0;
-  background: transparent;
+  background: transparent !important;
   padding: 12px;
   border-radius: 0;
   color: inherit;
@@ -274,7 +372,7 @@ textarea:disabled {
 }
 
 .project-item-wrapper .project-card:hover {
-  background: #f8fafc;
+  background: rgba(255, 255, 255, 0.05) !important;
 }
 
 .project-card strong {
@@ -295,7 +393,7 @@ textarea:disabled {
 }
 
 .project-delete-btn {
-  background: transparent;
+  background: transparent !important;
   border: 0;
   border-left: 1px solid var(--color-border-light);
   border-radius: 0;
@@ -307,7 +405,7 @@ textarea:disabled {
 }
 
 .project-delete-btn:hover {
-  background: var(--color-danger-bg);
+  background: var(--color-danger-bg) !important;
   color: var(--color-danger);
 }
 
@@ -337,39 +435,30 @@ textarea:disabled {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: var(--rounded-md);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid var(--color-border);
-  background: white;
-  color: var(--color-text-primary);
   transition: all 0.15s ease;
 }
 
-.excel-btn:hover {
-  background: #f1f5f9;
-  border-color: #94a3b8;
-}
-
 .export-btn {
-  color: #166534;
-  border-color: #bbf7d0;
-  background: #f0fdf4;
+  background: var(--color-primary) !important;
+  color: var(--color-surface) !important;
+  border: 1px solid var(--color-border-light) !important;
 }
 .export-btn:hover {
-  background: #dcfce7;
-  border-color: #86efac;
+  background: var(--color-primary-hover) !important;
+  opacity: 0.9 !important;
 }
 
 .import-btn {
-  color: #0369a1;
-  border-color: #bae6fd;
-  background: #f0f9ff;
+  background: var(--color-surface-bright) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border) !important;
 }
 .import-btn:hover {
-  background: #e0f2fe;
-  border-color: #7dd3fc;
+  background: var(--color-surface-container-highest) !important;
 }
 
 /* Budget Summary Bar */
@@ -378,9 +467,9 @@ textarea:disabled {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: #f8fafc;
+  background: var(--color-surface-container);
   border: 1px solid var(--color-border-light);
-  border-radius: 6px;
+  border-radius: var(--rounded-md);
   margin-bottom: 16px;
 }
 
@@ -438,9 +527,9 @@ textarea:disabled {
 .selected-project-pill {
   font-size: 0.8rem;
   padding: 4px 10px;
-  background: #f1f5f9;
+  background: var(--color-surface-container-high);
   border: 1px solid var(--color-border-light);
-  border-radius: 4px;
+  border-radius: var(--rounded-sm);
 }
 
 .form-section {
@@ -477,9 +566,9 @@ textarea:disabled {
 
 .line-total-card {
   padding: 8px 12px;
-  background: #f0fdfa;
-  border: 1px solid #ccfbf1;
-  border-radius: 6px;
+  background: var(--color-sidebar-profile);
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded-md);
   display: flex;
   flex-direction: column;
 }
@@ -487,12 +576,12 @@ textarea:disabled {
 .line-total-card span {
   font-size: 0.75rem;
   text-transform: uppercase;
-  color: #0f766e;
+  color: var(--color-text-secondary);
 }
 
 .line-total-card strong {
   font-size: 1.25rem;
-  color: #0d9488;
+  color: var(--color-primary);
 }
 
 .primary-action {
@@ -519,7 +608,7 @@ textarea:disabled {
 }
 
 .excel-style-table th {
-  background: #f1f5f9;
+  background: var(--color-sheet-header-bg);
   border-bottom: 2px solid var(--color-border);
   border-right: 1px solid var(--color-border-light);
   color: var(--color-text-primary);
@@ -535,7 +624,7 @@ textarea:disabled {
 }
 
 .excel-style-table tr:hover {
-  background-color: #f8fafc;
+  background-color: var(--color-nav-hover);
 }
 
 .excel-style-table .num-col {
@@ -551,7 +640,7 @@ textarea:disabled {
   height: 32px;
   border-radius: 4px;
   object-fit: cover;
-  background: #f1f5f9;
+  background: var(--color-surface-container);
   border: 1px solid var(--color-border-light);
 }
 
@@ -575,7 +664,7 @@ textarea:disabled {
 
 .measurements-cell span {
   display: inline-block;
-  background: #f1f5f9;
+  background: var(--color-surface-container-high);
   border-radius: 3px;
   padding: 2px 6px;
   font-size: 0.75rem;
@@ -609,7 +698,7 @@ textarea:disabled {
 }
 
 .table-summary-row td {
-  background: #fafafa;
+  background: var(--color-surface-container-low);
   border-top: 2px solid var(--color-border);
   font-weight: bold;
 }
@@ -651,9 +740,9 @@ textarea:disabled {
 
 .materials-list article {
   border: 1px solid var(--color-border-light);
-  border-radius: 6px;
+  border-radius: var(--rounded-md);
   padding: 12px;
-  background: #fafafa;
+  background: var(--color-surface-container);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -696,12 +785,12 @@ textarea:disabled {
 }
 
 .edit-btn {
-  background: #f1f5f9;
+  background: var(--color-surface-bright);
   border: 1px solid var(--color-border);
   color: var(--color-text-primary);
 }
 .edit-btn:hover {
-  background: #e2e8f0;
+  background: var(--color-surface-container-highest);
 }
 
 .delete-btn-danger {
@@ -726,9 +815,10 @@ textarea:disabled {
   bottom: 24px;
   right: 24px;
   padding: 12px 20px;
-  background: #0f172a;
-  color: #f8fafc;
-  border-radius: 6px;
+  background: var(--color-surface-container-high);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded-md);
   font-size: 0.85rem;
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -764,12 +854,12 @@ textarea:disabled {
 
 .sidebar {
   width: 260px;
-  background: #0f172a;
-  color: #f8fafc;
+  background: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
   padding: 24px 18px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #1e293b;
+  border-right: 1px solid var(--color-sidebar-border);
 }
 
 .sidebar-brand {
@@ -784,7 +874,7 @@ textarea:disabled {
   font-weight: 800;
   letter-spacing: 0.05em;
   margin: 0;
-  color: #38bdf8;
+  color: var(--color-primary);
 }
 
 .brand-logo {
@@ -792,8 +882,8 @@ textarea:disabled {
 }
 
 .user-profile-section {
-  background: #1e293b;
-  border-radius: 6px;
+  background: var(--color-sidebar-profile);
+  border-radius: var(--rounded-md);
   padding: 12px;
   margin-bottom: 24px;
 }
@@ -805,9 +895,9 @@ textarea:disabled {
 }
 
 .user-profile-section select {
-  background: #0f172a;
-  border-color: #334155;
-  color: white;
+  background: var(--color-sidebar-bg);
+  border-color: var(--color-sidebar-border);
+  color: var(--color-sidebar-text);
   width: 100%;
   margin-top: 4px;
   padding: 6px 10px;
@@ -817,20 +907,23 @@ textarea:disabled {
 .user-badge {
   display: inline-block;
   margin-top: 8px;
-  padding: 2px 8px;
+  padding: 3px 8px;
   border-radius: 4px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  align-self: flex-start;
 }
 
 .user-badge.admin {
-  background: #0284c7;
-  color: white;
+  background: var(--color-nav-active) !important;
+  color: var(--color-nav-active-text) !important;
+  border: 1px solid var(--color-border-light);
 }
 
 .user-badge.viewer {
-  background: #475569;
-  color: #cbd5e1;
+  background: var(--color-surface-container-high) !important;
+  color: var(--color-text-secondary) !important;
+  border: 1px solid var(--color-border-light);
 }
 
 .sidebar-nav {
@@ -845,7 +938,7 @@ textarea:disabled {
   text-align: left;
   background: transparent;
   border: 0;
-  color: #94a3b8;
+  color: var(--color-text-secondary) !important;
   padding: 10px 14px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -858,13 +951,19 @@ textarea:disabled {
 }
 
 .nav-item:hover {
-  background: #1e293b;
-  color: #f8fafc;
+  background: var(--color-nav-hover) !important;
+  color: var(--color-sidebar-text) !important;
 }
 
 .nav-item.active {
-  background: #0284c7;
-  color: white;
+  background: var(--color-nav-active) !important;
+  color: var(--color-nav-active-text) !important;
+}
+
+.logout-btn:hover {
+  background: var(--color-danger-bg) !important;
+  color: var(--color-danger) !important;
+  border-color: var(--color-danger) !important;
 }
 
 .sidebar-footer {
@@ -877,27 +976,27 @@ textarea:disabled {
 .main-content-area {
   flex: 1;
   padding: 24px 32px;
-  background: #f8fafc;
+  background: var(--color-bg);
   overflow-y: auto;
   height: 100vh;
 }
 
 /* Ficha de Proyecto Estilo Hoja Excel */
 .project-excel-sheet-card {
-  border: 2px solid #b7c5d8;
-  border-radius: 6px;
-  background: #ffffff;
+  border: 2px solid var(--color-sheet-border);
+  border-radius: var(--rounded-md);
+  background: var(--color-sheet-cell-bg);
   overflow: hidden;
   margin-bottom: 20px;
 }
 
 .sheet-tab-header {
-  background: #f1f5f9;
-  border-bottom: 2px solid #b7c5d8;
+  background: var(--color-sheet-header-bg);
+  border-bottom: 2px solid var(--color-sheet-border);
   padding: 8px 12px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #3f4b5f;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -910,8 +1009,8 @@ textarea:disabled {
 
 .sheet-cell {
   padding: 10px 12px;
-  border-right: 1px solid #d7e0eb;
-  border-bottom: 1px solid #d7e0eb;
+  border-right: 1px solid var(--color-sheet-border);
+  border-bottom: 1px solid var(--color-sheet-border);
   font-size: 0.85rem;
 }
 
@@ -920,8 +1019,8 @@ textarea:disabled {
 }
 
 .sheet-cell.header-cell {
-  background: #f8fafc;
-  color: #475569;
+  background: var(--color-sheet-header-bg);
+  color: var(--color-text-secondary);
   font-weight: 700;
   font-size: 0.75rem;
   text-transform: uppercase;
@@ -929,8 +1028,8 @@ textarea:disabled {
 }
 
 .sheet-cell.val-cell {
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--color-sheet-cell-bg);
+  color: var(--color-sheet-cell-text);
   font-weight: 600;
 }
 
@@ -966,5 +1065,106 @@ textarea:disabled {
     border-right: 0;
   }
 }
+
+.premium-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding: 8px 36px 8px 12px !important;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--rounded-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+}
+.premium-select:hover {
+  border-color: #94a3b8;
+}
+.premium-select:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.excel-sheets-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--color-sheet-border);
+  background: var(--color-sheet-header-bg);
+  padding: 4px 4px 0 4px;
+  border-radius: var(--rounded-lg) var(--rounded-lg) 0 0;
+}
+
+.excel-sheet-tab-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-container-low);
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  border-radius: var(--rounded-md) var(--rounded-md) 0 0;
+  cursor: pointer;
+  margin-right: 2px;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+  z-index: 1;
+}
+
+.excel-sheet-tab-btn:hover {
+  background: var(--color-surface-container-high);
+  color: var(--color-text-primary);
+}
+
+.excel-sheet-tab-btn.active {
+  border-bottom: 2px solid var(--color-surface);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  margin-bottom: -2px;
+  z-index: 2;
+}
+
+.info-alert {
+  background: var(--color-info-bg);
+  border-left: 4px solid var(--color-info-border);
+  padding: 12px;
+  border-radius: var(--rounded-md);
+  font-size: 0.85rem;
+  color: var(--color-info-text);
+  margin-bottom: 20px;
+}
+
+/* Estilos de Impresión y Generación de PDF */
+[data-pdf-printing="true"] {
+  box-shadow: none !important;
+  border: 1px solid var(--color-border-light) !important;
+  background: #ffffff !important;
+  color: #101415 !important;
+  padding: 24px !important;
+}
+
+[data-pdf-printing="true"] table th {
+  background: #eff6ff !important;
+  color: #101415 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+[data-pdf-printing="true"] table td {
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #101415 !important;
+}
+
+[data-pdf-printing="true"] .total-cell {
+  color: #101415 !important;
+}
+
+[data-pdf-printing="true"] tr {
+  page-break-inside: avoid;
+}
+
 
 

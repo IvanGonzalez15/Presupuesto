@@ -15,11 +15,19 @@ const materialRoutes = require('./routes/material.routes');
 
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+const fs = require('fs');
 const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+
+// Ensure uploads folder exists
+const uploadsPath = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath);
+}
+app.use('/uploads', express.static(uploadsPath));
 
 // Bind Routes
 app.use('/api/auth', authRoutes);
