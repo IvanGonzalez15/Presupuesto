@@ -47,7 +47,7 @@ export default function Login({ onLogin, error }) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '0.85rem', fontWeight: '600', color: '#475569' }}>Usuario</label>
             <input
@@ -56,6 +56,7 @@ export default function Login({ onLogin, error }) {
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Introduce tu nombre de usuario"
+              autoComplete="off"
               style={{
                 padding: '10px 14px',
                 border: '1px solid #cbd5e1',
@@ -74,6 +75,7 @@ export default function Login({ onLogin, error }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
+              autoComplete="current-password"
               style={{
                 padding: '10px 14px',
                 border: '1px solid #cbd5e1',

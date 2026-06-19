@@ -122,3 +122,44 @@ exports.remove = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.uploadPhoto = async (req, res, next) => {
+  try {
+    const fs = require('fs').promises;
+    const path = require('path');
+    
+    const { fileData, filename } = req.body;
+    if (!fileData || !filename) {
+      return res.status(400).json({ message: 'fileData y filename son obligatorios' });
+    }
+
+    const match = fileData.match(/^data:([^;]+);base64,(.*)$/);
+    let base64Content = fileData;
+    let extension = path.extname(filename) || '.png';
+    
+    if (match) {
+      base64Content = match[2];
+      const mimeType = match[1];
+      if (!path.extname(filename)) {
+        if (mimeType === 'image/jpeg') extension = '.jpg';
+        else if (mimeType === 'image/png') extension = '.png';
+        else if (mimeType === 'image/gif') extension = '.gif';
+        else if (mimeType === 'image/webp') extension = '.webp';
+      }
+    }
+
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newFilename = `img_${uniqueId}${extension}`;
+    
+    const uploadsDir = path.join(__dirname, '../uploads');
+    const filePath = path.join(uploadsDir, newFilename);
+
+    const buffer = Buffer.from(base64Content, 'base64');
+    await fs.writeFile(filePath, buffer);
+
+    const relativeUrl = `/uploads/${newFilename}`;
+    res.status(200).json({ url: relativeUrl });
+  } catch (error) {
+    next(error);
+  }
+};
