@@ -298,7 +298,7 @@ export default function Template1({ company, project, items, total, money, templ
             <span>{money.format(total * 0.21)}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid var(--color-border)', paddingTop: '10px', fontWeight: '800', fontSize: '1.1rem', color: 'var(--color-success)' }}>
-            <span>TOTAL PRES.:</span>
+            <span>TOTAL:</span>
             <span>{money.format(total * 1.21)}</span>
           </div>
         </div>
