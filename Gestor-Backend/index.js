@@ -41,6 +41,26 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'gestor-presupuestos-api' });
 });
 
+app.get('/api/empresas', (_req, res, next) => {
+  try {
+    const companiesPath = path.join(__dirname, 'data', 'companies.json');
+    const rawData = fs.readFileSync(companiesPath, 'utf8');
+    res.json(JSON.parse(rawData));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/templateoptions', (_req, res, next) => {
+  try {
+    const filePath = path.join(__dirname, 'data', 'templateoptions.json');
+    const rawData = fs.readFileSync(filePath, 'utf8');
+    res.json(JSON.parse(rawData));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((error, _req, res, _next) => {
   console.error(error);
   res.status(500).json({

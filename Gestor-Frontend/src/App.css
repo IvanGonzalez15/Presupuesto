@@ -1166,5 +1166,9 @@ textarea:disabled {
   page-break-inside: avoid;
 }
 
+[data-pdf-printing="true"] .budget-dropdown-menu {
+  display: none !important;
+}
+
 
 
