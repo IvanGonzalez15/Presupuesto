@@ -8,6 +8,10 @@ module.exports = (sequelize, DataTypes) => {
       autoIncrement: true,
       primaryKey: true
     },
+    proyecto: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
     Codigo: {
       type: DataTypes.STRING(45),
       allowNull: false,

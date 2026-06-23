@@ -1,4 +1,6 @@
-const db = require('../config/db');
+const fs = require('fs').promises;
+const path = require('path');
+const db = require('../models');
 const { parseElementExtraData, calcularPrecioPieza } = require('../helpers/calc.helper');
 
 const normalizeElemento = (body) => {
@@ -28,15 +30,16 @@ const normalizeElemento = (body) => {
 
 exports.findAll = async (req, res, next) => {
   try {
-    const params = [];
-    let sql = 'SELECT * FROM elementos';
+    const filter = {};
     if (req.query.proyectoId) {
-      sql += ' WHERE Id_proyecto = ?';
-      params.push(req.query.proyectoId);
+      filter.Id_proyecto = req.query.proyectoId;
     }
-    sql += ' ORDER BY id DESC';
-    const [rows] = await db.query(sql, params);
-    res.json(rows);
+    
+    const elementos = await db.Elemento.findAll({
+      where: filter,
+      order: [['id', 'DESC']]
+    });
+    res.json(elementos);
   } catch (error) {
     next(error);
   }
@@ -44,27 +47,21 @@ exports.findAll = async (req, res, next) => {
 
 exports.findOne = async (req, res, next) => {
   try {
-    const [rows] = await db.query('SELECT * FROM elementos WHERE id = ?', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ message: 'Elemento no encontrado' });
-    res.json(rows[0]);
+    const elemento = await db.Elemento.findByPk(req.params.id);
+    if (!elemento) return res.status(404).json({ message: 'Elemento no encontrado' });
+    res.json(elemento);
   } catch (error) {
     next(error);
   }
 };
 
 const createReferencia = async (projectId) => {
-  const [[project]] = await db.query(
-    'SELECT Codigo FROM proyectos WHERE id = ?',
-    [projectId]
-  );
-
+  const project = await db.Proyecto.findByPk(projectId);
   if (!project) return null;
 
-  // Count elements associated with this project to obtain sequential ID
-  const [[{ count }]] = await db.query(
-    'SELECT COUNT(*) AS count FROM elementos WHERE Id_proyecto = ?',
-    [projectId]
-  );
+  const count = await db.Elemento.count({
+    where: { Id_proyecto: projectId }
+  });
 
   const nextNum = count + 1;
   const suffix = String(nextNum).padStart(3, '0');
@@ -74,23 +71,17 @@ const createReferencia = async (projectId) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const elemento = normalizeElemento(req.body);
-    if (!elemento.Nombre || !elemento.Id_usuario_creador || !elemento.Id_proyecto) {
+    const data = normalizeElemento(req.body);
+    if (!data.Nombre || !data.Id_usuario_creador || !data.Id_proyecto) {
       return res.status(400).json({ message: 'Nombre, Id_usuario_creador e Id_proyecto son obligatorios' });
     }
 
-    const Ref = await createReferencia(elemento.Id_proyecto);
+    const Ref = await createReferencia(data.Id_proyecto);
     if (!Ref) return res.status(404).json({ message: 'Proyecto no encontrado' });
-    elemento.Ref = Ref;
+    data.Ref = Ref;
 
-    const [result] = await db.query(
-      `INSERT INTO elementos
-       (Nombre, Foto, Ref, Id_usuario_creador, Id_proyecto, Cantidad, Unidad_de_medida, Precio, medida_metro_cuadrado, medida_metro_cubico)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [elemento.Nombre, elemento.Foto, elemento.Ref, elemento.Id_usuario_creador, elemento.Id_proyecto,
-        elemento.Cantidad, elemento.Unidad_de_medida, elemento.Precio, elemento.medida_metro_cuadrado, elemento.medida_metro_cubico]
-    );
-    res.status(201).json({ id: result.insertId, ...elemento });
+    const nuevoElemento = await db.Elemento.create(data);
+    res.status(201).json(nuevoElemento);
   } catch (error) {
     next(error);
   }
@@ -98,16 +89,15 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const elemento = normalizeElemento(req.body);
-    const [result] = await db.query(
-      `UPDATE elementos SET Nombre = ?, Foto = ?, Ref = ?, Id_usuario_creador = ?, Id_proyecto = ?,
-       Cantidad = ?, Unidad_de_medida = ?, Precio = ?, medida_metro_cuadrado = ?, medida_metro_cubico = ? WHERE id = ?`,
-      [elemento.Nombre, elemento.Foto, elemento.Ref, elemento.Id_usuario_creador, elemento.Id_proyecto,
-        elemento.Cantidad, elemento.Unidad_de_medida, elemento.Precio, elemento.medida_metro_cuadrado,
-        elemento.medida_metro_cubico, req.params.id]
-    );
-    if (!result.affectedRows) return res.status(404).json({ message: 'Elemento no encontrado' });
-    res.json({ id: Number(req.params.id), ...elemento });
+    const data = normalizeElemento(req.body);
+    const [affectedRows] = await db.Elemento.update(data, {
+      where: { id: req.params.id }
+    });
+    
+    if (!affectedRows) return res.status(404).json({ message: 'Elemento no encontrado' });
+    
+    const updatedElemento = await db.Elemento.findByPk(req.params.id);
+    res.json(updatedElemento);
   } catch (error) {
     next(error);
   }
@@ -115,8 +105,11 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
-    const [result] = await db.query('DELETE FROM elementos WHERE id = ?', [req.params.id]);
-    if (!result.affectedRows) return res.status(404).json({ message: 'Elemento no encontrado' });
+    const deletedCount = await db.Elemento.destroy({
+      where: { id: req.params.id }
+    });
+    
+    if (!deletedCount) return res.status(404).json({ message: 'Elemento no encontrado' });
     res.status(204).send();
   } catch (error) {
     next(error);
@@ -125,9 +118,6 @@ exports.remove = async (req, res, next) => {
 
 exports.uploadPhoto = async (req, res, next) => {
   try {
-    const fs = require('fs').promises;
-    const path = require('path');
-    
     const { fileData, filename } = req.body;
     if (!fileData || !filename) {
       return res.status(400).json({ message: 'fileData y filename son obligatorios' });
@@ -136,10 +126,17 @@ exports.uploadPhoto = async (req, res, next) => {
     const match = fileData.match(/^data:([^;]+);base64,(.*)$/);
     let base64Content = fileData;
     let extension = path.extname(filename) || '.png';
+    let mimeType = 'image/png';
     
     if (match) {
+      mimeType = match[1];
       base64Content = match[2];
-      const mimeType = match[1];
+      
+      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedMimeTypes.includes(mimeType)) {
+        return res.status(400).json({ message: 'Tipo de archivo no permitido. Solo se permiten imágenes (JPEG, PNG, GIF, WEBP).' });
+      }
+
       if (!path.extname(filename)) {
         if (mimeType === 'image/jpeg') extension = '.jpg';
         else if (mimeType === 'image/png') extension = '.png';
@@ -148,13 +145,24 @@ exports.uploadPhoto = async (req, res, next) => {
       }
     }
 
-    const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const newFilename = `img_${uniqueId}${extension}`;
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    const sanitizedExtension = extension.toLowerCase();
+    if (!allowedExtensions.includes(sanitizedExtension)) {
+      return res.status(400).json({ message: 'Extensión de archivo no permitida. Solo se permiten imágenes (.jpg, .jpeg, .png, .gif, .webp).' });
+    }
+
+    const buffer = Buffer.from(base64Content, 'base64');
+    const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+    if (buffer.length > MAX_SIZE) {
+      return res.status(400).json({ message: 'El archivo excede el tamaño máximo permitido de 5MB.' });
+    }
+
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const newFilename = `img_${uniqueId}${sanitizedExtension}`;
     
     const uploadsDir = path.join(__dirname, '../uploads');
     const filePath = path.join(uploadsDir, newFilename);
 
-    const buffer = Buffer.from(base64Content, 'base64');
     await fs.writeFile(filePath, buffer);
 
     const relativeUrl = `/uploads/${newFilename}`;

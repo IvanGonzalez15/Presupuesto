@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 const today = new Date().toISOString().slice(0, 10);
-const initialClient = { id: '', Nombre: '', Persona_contacto: '', Email_contacto: '', Numero_contacto: '' };
+const initialClient = { Nombre: '', Persona_contacto: '', Email_contacto: '', Numero_contacto: '' };
 const initialProject = { Codigo: '', Fecha_entrega: today, Colaboradores: '', Responsable: '', Id_Cliente: '' };
 
 export default function Setup({
@@ -60,7 +60,6 @@ export default function Setup({
       <div className="setup-grid">
         <form className="panel setup-card" onSubmit={handleClientSubmit} autoComplete="off">
           <div className="section-title"><span>01</span><h2>Crear cliente</h2></div>
-          <input name="id" onChange={handleClientChange} placeholder="ID cliente" required value={clientDraft.id} autoComplete="off" />
           <input name="Nombre" onChange={handleClientChange} placeholder="Nombre fiscal" required value={clientDraft.Nombre} autoComplete="off" />
           <input name="Persona_contacto" onChange={handleClientChange} placeholder="Persona de contacto" value={clientDraft.Persona_contacto} autoComplete="off" />
           <input name="Email_contacto" onChange={handleClientChange} placeholder="Email contacto" type="email" value={clientDraft.Email_contacto} autoComplete="off" />

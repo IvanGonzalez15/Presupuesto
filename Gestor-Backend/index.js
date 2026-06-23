@@ -1,9 +1,11 @@
+const path = require('path');
+const dotenv = require('dotenv');
+dotenv.config({ path: path.resolve(__dirname, '.env') });
+
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
 
-const { ensureElementoProjectForeignKey } = require('./config/ensureSchema');
+const db = require('./models');
 
 // Routers
 const authRoutes = require('./routes/auth.routes');
@@ -12,8 +14,6 @@ const usuarioRoutes = require('./routes/usuario.routes');
 const proyectoRoutes = require('./routes/proyecto.routes');
 const elementoRoutes = require('./routes/elemento.routes');
 const materialRoutes = require('./routes/material.routes');
-
-dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const fs = require('fs');
 const app = express();
@@ -71,9 +71,12 @@ app.use((error, _req, res, _next) => {
 
 const startServer = async () => {
   try {
-    await ensureElementoProjectForeignKey();
+    await db.sequelize.authenticate();
+    console.log('Conexión con la base de datos establecida correctamente.');
+    await db.sequelize.sync({ alter: true });
+    console.log('Base de datos sincronizada con Sequelize de forma segura.');
   } catch (error) {
-    console.error('No se pudo verificar la clave foránea de elementos.Id_proyecto:', error.message);
+    console.error('Error al inicializar la base de datos:', error.message);
   }
 
   app.listen(port, () => {
