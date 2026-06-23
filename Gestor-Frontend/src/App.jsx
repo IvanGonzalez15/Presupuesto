@@ -283,9 +283,12 @@ function App() {
 
   const updateElementPhoto = async (item, photoUrl) => {
     try {
-      const payload = { ...item, Foto: photoUrl };
+      const extra = parseElementExtraData(item);
+      extra.fotoUrl = photoUrl;
+      const serialized = serializeElementExtraData(extra);
+      const payload = { ...item, Foto: serialized };
       await elementService.update(item.id, payload);
-      setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Foto: photoUrl } : e));
+      setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Foto: serialized } : e));
       setStatus('Foto de la partida actualizada.');
     } catch (err) {
       setStatus(`Error al actualizar la foto: ${err.message}`);

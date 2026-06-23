@@ -1,0 +1,29 @@
+[
+  {
+    "id": "linex",
+    "nombre": "LINE-X HISPANIA, S.L.",
+    "nif": "B-64084759",
+    "direccion1": "Carretera C-55 KM 24. Raval dels Torrents.",
+    "direccion2": "08297-CASTELLGALI (Barcelona)",
+    "telefono": "938 789 622",
+    "email": "info@linex.es",
+    "web": "www.linex.es",
+    "ibans": [
+      "ES17 2100 0440 1802 0016 8996",
+      "ES17 2100 0440 1802 0016 9999"
+    ]
+  },
+  {
+    "id": "pedro",
+    "nombre": "Pedro",
+    "nif": "q1ef1",
+    "direccion1": "frkfiafdva",
+    "direccion2": "ermguruvn",
+    "telefono": "qrjnv",
+    "email": "qerpkv",
+    "web": "errgkoitmv",
+    "ibans": [
+      "ES99 1234 5678 9012 3456 7890"
+    ]
+  }
+]

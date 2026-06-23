@@ -1,13 +1,25 @@
 import React from 'react';
 import { exportToPDF } from '../utils/pdfHelper';
 import { BASE_URL } from '../services/api';
+import { Template1, Template2 } from './templates';
 
-const getPhotoUrl = (fotoPath) => {
-  if (!fotoPath) return '';
-  if (fotoPath.startsWith('http://') || fotoPath.startsWith('https://') || fotoPath.startsWith('data:')) {
-    return fotoPath;
+const getPhotoUrl = (foto) => {
+  if (!foto) return '';
+  let path = foto;
+  if (typeof foto === 'string' && foto.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(foto);
+      path = parsed.fotoUrl || '';
+    } catch (e) {
+      console.error('Error parsing photo JSON:', e);
+      path = '';
+    }
   }
-  return `${BASE_URL}${fotoPath}`;
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path;
+  }
+  return `${BASE_URL}${path}`;
 };
 
 
@@ -169,6 +181,28 @@ export default function Presupuestos({
 }) {
   const initialItem = { Nombre: '', Foto: '', Cantidad: 1, Unidad_de_medida: 'ud', Precio: 0, medida_metro_cuadrado: 0, medida_metro_cubico: 0 };
   const [itemDraft, setItemDraft] = React.useState(initialItem);
+
+  const [companies, setCompanies] = React.useState([]);
+  const [selectedCompanyId, setSelectedCompanyId] = React.useState('linex');
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState('Template1');
+  const [templateOptions, setTemplateOptions] = React.useState(null);
+
+  React.useEffect(() => {
+    fetch(`${BASE_URL}/api/empresas`)
+      .then(res => res.json())
+      .then(data => {
+        setCompanies(data);
+        if (data.length > 0) {
+          setSelectedCompanyId(data[0].id);
+        }
+      })
+      .catch(err => console.error('Error fetching companies:', err));
+
+    fetch(`${BASE_URL}/api/templateoptions`)
+      .then(res => res.json())
+      .then(data => setTemplateOptions(data))
+      .catch(err => console.error('Error fetching template options:', err));
+  }, []);
 
   const handleItemInputChange = (e) => {
     const { name, value } = e.target;
@@ -483,55 +517,58 @@ export default function Presupuestos({
                       </tr>
                     </thead>
                     <tbody>
-                      {projectItems.map((item) => (
-                        <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
-                          <td style={{ padding: '8px', textAlign: 'center', position: 'relative' }}>
-                            {!isViewer ? (
-                              <div
-                                onDragOver={(e) => { e.preventDefault(); setDragOverTableId(item.id); }}
-                                onDragLeave={() => setDragOverTableId(null)}
-                                onDrop={(e) => handleDrop(e, 'table', item)}
-                                onClick={() => document.getElementById(`table-file-input-${item.id}`).click()}
-                                style={{
-                                  width: '44px',
-                                  height: '44px',
-                                  margin: '0 auto',
-                                  border: `2px dashed ${dragOverTableId === item.id ? 'var(--color-accent)' : 'var(--color-border-light)'}`,
-                                  borderRadius: '6px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  background: dragOverTableId === item.id ? 'var(--color-surface-container-high)' : 'var(--color-surface-container-low)',
-                                  position: 'relative',
-                                  overflow: 'hidden',
-                                  transition: 'all 0.2s ease'
-                                }}
-                                title="Arrastra una foto o haz clic para cambiar"
-                              >
-                                {uploadingTableId === item.id ? (
-                                  <span style={{ fontSize: '0.55rem', color: 'var(--color-success)' }}>Subiendo...</span>
-                                ) : item.Foto && !item.Foto.trim().startsWith('{') ? (
-                                  <img alt={item.Nombre} src={getPhotoUrl(item.Foto)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                ) : (
-                                  <span style={{ fontSize: '1rem', color: 'var(--color-text-secondary)' }}>+</span>
-                                )}
-                                <input
-                                  type="file"
-                                  id={`table-file-input-${item.id}`}
-                                  accept="image/*"
-                                  onChange={(e) => handleFileChange(e, 'table', item)}
-                                  style={{ display: 'none' }}
-                                />
-                              </div>
-                            ) : (
-                              item.Foto && !item.Foto.trim().startsWith('{') ? (
-                                <img alt={item.Nombre} src={getPhotoUrl(item.Foto)} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', margin: '0 auto' }} />
+                      {projectItems.map((item) => {
+                        const extra = parseElementExtraData(item);
+                        const hasPhoto = !!(extra && extra.fotoUrl);
+                        return (
+                          <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                            <td style={{ padding: '8px', textAlign: 'center', position: 'relative' }}>
+                              {!isViewer ? (
+                                <div
+                                  onDragOver={(e) => { e.preventDefault(); setDragOverTableId(item.id); }}
+                                  onDragLeave={() => setDragOverTableId(null)}
+                                  onDrop={(e) => handleDrop(e, 'table', item)}
+                                  onClick={() => document.getElementById(`table-file-input-${item.id}`).click()}
+                                  style={{
+                                    width: '44px',
+                                    height: '44px',
+                                    margin: '0 auto',
+                                    border: `2px dashed ${dragOverTableId === item.id ? 'var(--color-accent)' : 'var(--color-border-light)'}`,
+                                    borderRadius: '6px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    background: dragOverTableId === item.id ? 'var(--color-surface-container-high)' : 'var(--color-surface-container-low)',
+                                    position: 'relative',
+                                    overflow: 'hidden',
+                                    transition: 'all 0.2s ease'
+                                  }}
+                                  title="Arrastra una foto o haz clic para cambiar"
+                                >
+                                  {uploadingTableId === item.id ? (
+                                    <span style={{ fontSize: '0.55rem', color: 'var(--color-success)' }}>Subiendo...</span>
+                                  ) : hasPhoto ? (
+                                    <img alt={item.Nombre} src={getPhotoUrl(item.Foto)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  ) : (
+                                    <span style={{ fontSize: '1rem', color: 'var(--color-text-secondary)' }}>+</span>
+                                  )}
+                                  <input
+                                    type="file"
+                                    id={`table-file-input-${item.id}`}
+                                    accept="image/*"
+                                    onChange={(e) => handleFileChange(e, 'table', item)}
+                                    style={{ display: 'none' }}
+                                  />
+                                </div>
                               ) : (
-                                <div style={{ width: '40px', height: '40px', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--color-text-secondary)', borderRadius: '4px', margin: '0 auto' }}>—</div>
-                              )
-                            )}
-                          </td>
+                                hasPhoto ? (
+                                  <img alt={item.Nombre} src={getPhotoUrl(item.Foto)} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', margin: '0 auto' }} />
+                                ) : (
+                                  <div style={{ width: '40px', height: '40px', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'var(--color-text-secondary)', borderRadius: '4px', margin: '0 auto' }}>—</div>
+                                )
+                              )}
+                            </td>
                           <td style={{ padding: '8px', fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.Ref}</td>
                           <td style={{ padding: '8px', fontWeight: 'bold' }}>{item.Nombre}</td>
                           <td style={{ padding: '8px', textAlign: 'center' }}>
@@ -553,7 +590,8 @@ export default function Presupuestos({
                             </td>
                           )}
                         </tr>
-                      ))}
+                      );
+                      })}
                       {projectItems.length > 0 && (
                         <tr style={{ background: 'var(--color-surface-container-low)', fontWeight: 'bold', borderTop: '2px solid var(--color-border)' }}>
                           <td colSpan={4} style={{ padding: '12px', textAlign: 'right' }}>Total Presupuesto Venta:</td>
@@ -578,6 +616,7 @@ export default function Presupuestos({
                   <table className="excel-style-table" style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--color-sheet-cell-bg)', minWidth: '900px' }}>
                     <thead>
                       <tr style={{ background: 'var(--color-sheet-header-bg)', borderBottom: '2px solid var(--color-sheet-border)' }}>
+                        <th style={{ padding: '10px', textAlign: 'center', fontSize: '0.8rem', width: '60px' }}>FOTO</th>
                         <th style={{ padding: '10px', textAlign: 'left', fontSize: '0.8rem' }}>REF</th>
                         <th style={{ padding: '10px', textAlign: 'left', fontSize: '0.8rem' }}>ELEMENTO</th>
                         <th style={{ padding: '10px', textAlign: 'center', fontSize: '0.8rem', width: '110px' }}>LARGO (mm)</th>
@@ -593,6 +632,13 @@ export default function Presupuestos({
                         const extra = parseElementExtraData(item);
                         return (
                           <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                            <td style={{ padding: '4px', textAlign: 'center' }}>
+                              {extra && extra.fotoUrl ? (
+                                <img alt={item.Nombre} src={getPhotoUrl(item.Foto)} style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px', margin: '0 auto', display: 'block' }} />
+                              ) : (
+                                <div style={{ width: '32px', height: '32px', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--color-text-secondary)', borderRadius: '4px', margin: '0 auto' }}>—</div>
+                              )}
+                            </td>
                             <td style={{ padding: '10px', fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.Ref}</td>
                             <td style={{ padding: '10px', fontWeight: 'bold' }}>{item.Nombre}</td>
                             <td style={{ padding: '8px', textAlign: 'center' }}>
@@ -673,6 +719,7 @@ export default function Presupuestos({
                   <table className="excel-style-table" style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--color-sheet-cell-bg)', minWidth: '1200px' }}>
                     <thead>
                       <tr style={{ background: 'var(--color-sheet-header-bg)', borderBottom: '2px solid var(--color-sheet-border)' }}>
+                        <th rowSpan={2} style={{ padding: '8px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', width: '60px' }}>FOTO</th>
                         <th rowSpan={2} style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)' }}>PIEZA</th>
                         <th rowSpan={2} style={{ padding: '8px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)' }}>UDS</th>
                         <th colSpan={5} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MATERIALES</th>
@@ -697,6 +744,13 @@ export default function Presupuestos({
                         const extra = parseElementExtraData(item);
                         return (
                           <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                            <td style={{ padding: '4px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>
+                              {extra && extra.fotoUrl ? (
+                                <img alt={item.Nombre} src={getPhotoUrl(item.Foto)} style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px', margin: '0 auto', display: 'block' }} />
+                              ) : (
+                                <div style={{ width: '32px', height: '32px', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--color-text-secondary)', borderRadius: '4px', margin: '0 auto' }}>—</div>
+                              )}
+                            </td>
                             <td style={{ padding: '8px', fontWeight: 'bold', borderRight: '1px solid var(--color-border-light)' }}>{item.Nombre}</td>
                             <td style={{ padding: '8px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>{item.Cantidad}</td>
                             
@@ -717,22 +771,22 @@ export default function Presupuestos({
                               <input type="checkbox" checked={extra.materials.mortero || false} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'materials', 'mortero', e.target.checked)} />
                             </td>
 
-                            {/* Hours inputs */}
-                            <td style={{ padding: '4px', textAlign: 'center' }}>
-                              <input type="number" min="0" step="0.5" value={extra.hours.oficina || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'oficina', Number(e.target.value))} style={{ width: '45px', textAlign: 'center' }} />
-                            </td>
-                            <td style={{ padding: '4px', textAlign: 'center' }}>
-                              <input type="number" min="0" step="0.5" value={extra.hours.programacion || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'programacion', Number(e.target.value))} style={{ width: '45px', textAlign: 'center' }} />
-                            </td>
-                            <td style={{ padding: '4px', textAlign: 'center' }}>
-                              <input type="number" min="0" step="0.5" value={extra.hours.mecanizado || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'mecanizado', Number(e.target.value))} style={{ width: '45px', textAlign: 'center' }} />
-                            </td>
-                            <td style={{ padding: '4px', textAlign: 'center' }}>
-                              <input type="number" min="0" step="0.5" value={extra.hours.prepost || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'prepost', Number(e.target.value))} style={{ width: '45px', textAlign: 'center' }} />
-                            </td>
-                            <td style={{ padding: '4px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>
-                              <input type="number" min="0" step="0.5" value={extra.hours.esculpir || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'esculpir', Number(e.target.value))} style={{ width: '45px', textAlign: 'center' }} />
-                            </td>
+                             {/* Hours inputs */}
+                             <td style={{ padding: '4px', textAlign: 'center' }}>
+                               <input type="number" min="0" step="0.5" value={extra.hours.oficina || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'oficina', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
+                             </td>
+                             <td style={{ padding: '4px', textAlign: 'center' }}>
+                               <input type="number" min="0" step="0.5" value={extra.hours.programacion || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'programacion', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
+                             </td>
+                             <td style={{ padding: '4px', textAlign: 'center' }}>
+                               <input type="number" min="0" step="0.5" value={extra.hours.mecanizado || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'mecanizado', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
+                             </td>
+                             <td style={{ padding: '4px', textAlign: 'center' }}>
+                               <input type="number" min="0" step="0.5" value={extra.hours.prepost || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'prepost', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
+                             </td>
+                             <td style={{ padding: '4px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>
+                               <input type="number" min="0" step="0.5" value={extra.hours.esculpir || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'esculpir', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
+                             </td>
 
                             <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: 'var(--color-primary)' }}>
                               {money.format(item.Precio)}
@@ -750,91 +804,85 @@ export default function Presupuestos({
             {subTab === '04-presupuesto' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 
-                {/* Selector de Cliente para ADMIN dentro de la vista de Presupuesto */}
-                {isAdmin && (
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'var(--color-surface-container-low)', padding: '12px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Filtrar Proyectos por Cliente:</span>
-                    <CustomClientSelect
-                      value={selectedClientIdFilter}
-                      onChange={setSelectedClientIdFilter}
-                      clientes={clientes}
-                    />
+                {/* selectores de empresa, plantilla y filtro de cliente */}
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
+                  {isAdmin && (
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Filtrar Proyectos por Cliente:</span>
+                      <CustomClientSelect
+                        value={selectedClientIdFilter}
+                        onChange={setSelectedClientIdFilter}
+                        clientes={clientes}
+                      />
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Empresa Emisora:</span>
+                    <select
+                      value={selectedCompanyId}
+                      onChange={(e) => setSelectedCompanyId(e.target.value)}
+                      style={{
+                        padding: '10px 14px',
+                        background: 'var(--color-surface)',
+                        border: '2px solid var(--color-border)',
+                        borderRadius: 'var(--rounded-lg)',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        color: 'var(--color-text-primary)',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {companies.map(c => (
+                        <option key={c.id} value={c.id}>{c.nombre}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
+
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Plantilla Visual:</span>
+                    <select
+                      value={selectedTemplateId}
+                      onChange={(e) => setSelectedTemplateId(e.target.value)}
+                      style={{
+                        padding: '10px 14px',
+                        background: 'var(--color-surface)',
+                        border: '2px solid var(--color-border)',
+                        borderRadius: 'var(--rounded-lg)',
+                        fontSize: '0.85rem',
+                        fontWeight: '600',
+                        color: 'var(--color-text-primary)',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="Template1">Plantilla Clásica (Template 1)</option>
+                      <option value="Template2">Plantilla Moderna (Template 2)</option>
+                    </select>
+                  </div>
+                </div>
 
                 <div id="formal-budget-pdf-content" style={{ display: 'flex', flexDirection: 'column', gap: '24px', background: 'var(--color-surface-container-lowest)', padding: '32px', borderRadius: '8px', border: '1px solid var(--color-border)', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.15)' }}>
-                  {/* Cabecera del presupuesto corporativo */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid var(--color-border)', paddingBottom: '20px' }}>
-                    <div>
-                      <h2 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '0 0 6px 0', color: 'var(--color-text-primary)' }}>LINE-X HISPANIA, S.L.</h2>
-                      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--color-text-secondary)', lineHeight: '1.4' }}>
-                        B-64084759<br />
-                        Carretera C-55 KM 24. Raval dels Torrents.<br />
-                        08297-CASTELLGALI (Barcelona)<br />
-                        Telf: 938 789 622
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <h3 style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-text-primary)', margin: '0 0 10px 0' }}>PRESUPUESTO</h3>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span><strong>CÓDIGO:</strong> {selectedProject.Codigo}</span>
-                        <span><strong>FECHA:</strong> {selectedProject.Fecha_entrega ? new Date(selectedProject.Fecha_entrega).toLocaleDateString('es-ES') : ''}</span>
-                        <span><strong>CLIENTE:</strong> {selectedProject.Cliente_Nombre || `ID: ${selectedProject.Id_Cliente}`}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tabla de partidas estilo cotización formal */}
-                  <div style={{ margin: '10px 0' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                      <thead>
-                        <tr style={{ background: 'var(--color-surface-bright)', color: 'var(--color-text-primary)' }}>
-                          <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: '0.8rem' }}>REF</th>
-                          <th style={{ padding: '12px 10px', textAlign: 'left', fontSize: '0.8rem' }}>CONCEPTO / DESCRIPCIÓN</th>
-                          <th style={{ padding: '12px 10px', textAlign: 'center', fontSize: '0.8rem', width: '80px' }}>UDS</th>
-                          <th style={{ padding: '12px 10px', textAlign: 'right', fontSize: '0.8rem', width: '140px' }}>PRECIO SPOT</th>
-                          <th style={{ padding: '12px 10px', textAlign: 'right', fontSize: '0.8rem', width: '140px' }}>TOTAL</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {projectItems.map((item) => (
-                          <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
-                            <td style={{ padding: '12px 10px', fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--color-text-secondary)' }}>{item.Ref}</td>
-                            <td style={{ padding: '12px 10px', fontSize: '0.9rem', fontWeight: '600' }}>
-                              {item.Nombre}
-                            </td>
-                            <td style={{ padding: '12px 10px', textAlign: 'center', fontSize: '0.9rem' }}>{item.Cantidad}</td>
-                            <td style={{ padding: '12px 10px', textAlign: 'right', fontSize: '0.9rem' }}>{money.format(item.Precio)}</td>
-                            <td style={{ padding: '12px 10px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 'bold' }}>{money.format(item.Cantidad * item.Precio)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Bloque de firma y totales */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--color-border-light)' }}>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--color-text-secondary)', maxWidth: '400px', lineHeight: '1.5' }}>
-                      <strong>Condiciones de venta:</strong><br />
-                      - Los precios no incluyen IVA.<br />
-                      - Validez del presupuesto: 30 días.<br />
-                      - Forma de pago según condiciones pactadas.
-                    </div>
-                    <div style={{ width: '300px', background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
-                        <span>Subtotal:</span>
-                        <span>{money.format(total)}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.85rem' }}>
-                        <span>I.V.A. (21%):</span>
-                        <span>{money.format(total * 0.21)}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid var(--color-border)', paddingTop: '10px', fontWeight: '800', fontSize: '1.1rem', color: 'var(--color-success)' }}>
-                        <span>TOTAL PRES.:</span>
-                        <span>{money.format(total * 1.21)}</span>
-                      </div>
-                    </div>
-                  </div>
+                  {selectedTemplateId === 'Template1' ? (
+                    <Template1
+                      company={companies.find(c => c.id === selectedCompanyId) || companies[0]}
+                      project={selectedProject}
+                      items={projectItems}
+                      total={total}
+                      money={money}
+                      templateOptions={templateOptions}
+                    />
+                  ) : (
+                    <Template2
+                      company={companies.find(c => c.id === selectedCompanyId) || companies[0]}
+                      project={selectedProject}
+                      items={projectItems}
+                      total={total}
+                      money={money}
+                      templateOptions={templateOptions}
+                    />
+                  )}
                 </div>
               </div>
             )}
