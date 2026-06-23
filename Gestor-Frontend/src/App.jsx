@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import './App.css';
 
 import Login from './components/Login';
@@ -16,6 +16,24 @@ import {
   userService
 } from './services/api';
 
+const decodeJWT = (token) => {
+  if (!token) return null;
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      window.atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
+};
+
 const money = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
 function App() {
@@ -31,7 +49,7 @@ function App() {
   };
 
   const [token, setToken] = useState(localStorage.getItem('lx_token') || '');
-  const [currentUser, setCurrentUser] = useState(JSON.parse(localStorage.getItem('lx_user') || 'null'));
+  const currentUser = useMemo(() => decodeJWT(token), [token]);
   const [loginError, setLoginError] = useState('');
 
   const [clientes, setClientes] = useState([]);
@@ -104,17 +122,15 @@ function App() {
     if (!token) return;
     async function loadDashboard() {
       try {
-        const [clientesRes, usuariosRes, proyectosRes, elementosRes, materialesRes] = await Promise.all([
+        const [clientesRes, usuariosRes, proyectosRes, materialesRes] = await Promise.all([
           clientService.getAll(),
           userService.getAll(),
           projectService.getAll(),
-          elementService.getAll(),
           materialService.getAll(),
         ]);
         setClientes(clientesRes.data);
         setUsuarios(usuariosRes.data);
         setProyectos(proyectosRes.data);
-        setElementos(elementosRes.data);
         setMateriales(materialesRes.data);
         setSelectedProjectId(proyectosRes.data[0]?.id ? String(proyectosRes.data[0].id) : '');
         setStatus('Datos sincronizados');
@@ -129,14 +145,28 @@ function App() {
     loadDashboard();
   }, [token]);
 
+  useEffect(() => {
+    if (!token || !selectedProjectId) {
+      setElementos([]);
+      return;
+    }
+    async function loadElements() {
+      try {
+        const { data } = await elementService.getAll(selectedProjectId);
+        setElementos(data);
+      } catch (error) {
+        console.error('Error al cargar partidas del proyecto:', error);
+      }
+    }
+    loadElements();
+  }, [selectedProjectId, token]);
+
   const handleLogin = async (nombre, password) => {
     try {
       setLoginError('');
       const { data } = await authService.login(nombre, password);
       localStorage.setItem('lx_token', data.token);
-      localStorage.setItem('lx_user', JSON.stringify(data.user));
       setToken(data.token);
-      setCurrentUser(data.user);
       setStatus(`¡Bienvenido, ${data.user.nombre}!`);
     } catch (err) {
       setLoginError(err.response?.data?.message || 'Error de red al conectar al servidor');
@@ -144,10 +174,10 @@ function App() {
   };
 
   const handleLogout = () => {
+    Object.values(pendingUpdates.current).forEach(clearTimeout);
+    pendingUpdates.current = {};
     localStorage.removeItem('lx_token');
-    localStorage.removeItem('lx_user');
     setToken('');
-    setCurrentUser(null);
     setClientes([]);
     setUsuarios([]);
     setProyectos([]);
@@ -303,7 +333,19 @@ function App() {
     handleImportExcelHelper(event, selectedProjectId, currentUser, refreshProjects, setElementos, setStatus);
   };
 
-  const updateElementExtraValue = async (item, fieldGroup, key, val) => {
+  const pendingUpdates = useRef({});
+
+  const queueElementUpdate = (itemId, updateFn) => {
+    if (pendingUpdates.current[itemId]) {
+      clearTimeout(pendingUpdates.current[itemId]);
+    }
+    pendingUpdates.current[itemId] = setTimeout(async () => {
+      await updateFn();
+      delete pendingUpdates.current[itemId];
+    }, 800);
+  };
+
+  const updateElementExtraValue = (item, fieldGroup, key, val) => {
     const extra = parseElementExtraData(item);
     if (fieldGroup === 'materials') {
       extra.materials[key] = val;
@@ -319,46 +361,58 @@ function App() {
 
     const updatedFoto = serializeElementExtraData(extra);
     
-    try {
-      const payload = {
-        ...item,
-        Foto: updatedFoto
-      };
-      const { data } = await elementService.update(item.id, payload);
-      
-      setElementos((current) => current.map((e) => e.id === item.id ? { 
-        ...e, 
-        Foto: data.Foto, 
-        Precio: data.Precio, 
-        medida_metro_cuadrado: data.medida_metro_cuadrado, 
-        medida_metro_cubico: data.medida_metro_cubico 
-      } : e));
-      await refreshProjects();
-    } catch (err) {
-      setStatus(`Error al actualizar partida: ${err.message}`);
-    }
+    setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Foto: updatedFoto } : e));
+
+    queueElementUpdate(item.id, async () => {
+      try {
+        const payload = {
+          ...item,
+          Foto: updatedFoto
+        };
+        const { data } = await elementService.update(item.id, payload);
+        
+        setElementos((current) => current.map((e) => e.id === item.id ? { 
+          ...e, 
+          Foto: data.Foto, 
+          Precio: data.Precio, 
+          medida_metro_cuadrado: data.medida_metro_cuadrado, 
+          medida_metro_cubico: data.medida_metro_cubico 
+        } : e));
+        await refreshProjects();
+      } catch (err) {
+        setStatus(`Error al actualizar partida: ${err.message}`);
+      }
+    });
   };
 
-  const updateElementQuantity = async (item, qty) => {
-    try {
-      const payload = { ...item, Cantidad: Number(qty) };
-      await elementService.update(item.id, payload);
-      setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Cantidad: Number(qty) } : e));
-      await refreshProjects();
-    } catch (err) {
-      setStatus(`Error al actualizar cantidad: ${err.message}`);
-    }
+  const updateElementQuantity = (item, qty) => {
+    const numericQty = Number(qty);
+    setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Cantidad: numericQty } : e));
+
+    queueElementUpdate(item.id, async () => {
+      try {
+        const payload = { ...item, Cantidad: numericQty };
+        await elementService.update(item.id, payload);
+        await refreshProjects();
+      } catch (err) {
+        setStatus(`Error al actualizar cantidad: ${err.message}`);
+      }
+    });
   };
 
-  const updateElementPrice = async (item, price) => {
-    try {
-      const payload = { ...item, Precio: Number(price) };
-      await elementService.update(item.id, payload);
-      setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Precio: Number(price) } : e));
-      await refreshProjects();
-    } catch (err) {
-      setStatus(`Error al actualizar precio unitario: ${err.message}`);
-    }
+  const updateElementPrice = (item, price) => {
+    const numericPrice = Number(price);
+    setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Precio: numericPrice } : e));
+
+    queueElementUpdate(item.id, async () => {
+      try {
+        const payload = { ...item, Precio: numericPrice };
+        await elementService.update(item.id, payload);
+        await refreshProjects();
+      } catch (err) {
+        setStatus(`Error al actualizar precio unitario: ${err.message}`);
+      }
+    });
   };
 
   const handleUpdateProject = async (e) => {

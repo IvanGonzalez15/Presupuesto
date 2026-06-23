@@ -1,4 +1,4 @@
-const db = require('../config/db');
+const db = require('../models');
 
 const normalizeMaterial = (body) => ({
   nombre: body.nombre?.trim(),
@@ -7,28 +7,12 @@ const normalizeMaterial = (body) => ({
   notas: body.notas || null
 });
 
-const ensureAdmin = async (req, res, next) => {
-  try {
-    const userId = req.header('x-user-id') || req.query.userId || req.body.userId;
-    if (!userId) return res.status(403).json({ message: 'Solo los administradores pueden modificar materiales' });
-
-    const [[user]] = await db.query('SELECT id, rol FROM usuarios WHERE id = ? AND Activo = 1', [userId]);
-    if (!user || !['admin', 'administrador'].includes(String(user.rol).toLowerCase())) {
-      return res.status(403).json({ message: 'Solo los administradores pueden modificar materiales' });
-    }
-
-    next();
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.ensureAdmin = ensureAdmin;
-
 exports.findAll = async (_req, res, next) => {
   try {
-    const [rows] = await db.query('SELECT * FROM materiales ORDER BY nombre ASC');
-    res.json(rows);
+    const materiales = await db.Material.findAll({
+      order: [['nombre', 'ASC']]
+    });
+    res.json(materiales);
   } catch (error) {
     next(error);
   }
@@ -36,9 +20,9 @@ exports.findAll = async (_req, res, next) => {
 
 exports.findOne = async (req, res, next) => {
   try {
-    const [rows] = await db.query('SELECT * FROM materiales WHERE id = ?', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ message: 'Material no encontrado' });
-    res.json(rows[0]);
+    const material = await db.Material.findByPk(req.params.id);
+    if (!material) return res.status(404).json({ message: 'Material no encontrado' });
+    res.json(material);
   } catch (error) {
     next(error);
   }
@@ -46,16 +30,13 @@ exports.findOne = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const material = normalizeMaterial(req.body);
-    if (!material.nombre || Number.isNaN(material.precio_venta) || material.precio_venta < 0) {
+    const data = normalizeMaterial(req.body);
+    if (!data.nombre || Number.isNaN(data.precio_venta) || data.precio_venta < 0) {
       return res.status(400).json({ message: 'nombre y precio_venta válido son obligatorios' });
     }
 
-    const [result] = await db.query(
-      'INSERT INTO materiales (nombre, precio_venta, caracteristicas, notas) VALUES (?, ?, ?, ?)',
-      [material.nombre, material.precio_venta, material.caracteristicas, material.notas]
-    );
-    res.status(201).json({ id: result.insertId, ...material });
+    const nuevoMaterial = await db.Material.create(data);
+    res.status(201).json(nuevoMaterial);
   } catch (error) {
     next(error);
   }
@@ -63,17 +44,19 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const material = normalizeMaterial(req.body);
-    if (!material.nombre || Number.isNaN(material.precio_venta) || material.precio_venta < 0) {
+    const data = normalizeMaterial(req.body);
+    if (!data.nombre || Number.isNaN(data.precio_venta) || data.precio_venta < 0) {
       return res.status(400).json({ message: 'nombre y precio_venta válido son obligatorios' });
     }
 
-    const [result] = await db.query(
-      'UPDATE materiales SET nombre = ?, precio_venta = ?, caracteristicas = ?, notas = ? WHERE id = ?',
-      [material.nombre, material.precio_venta, material.caracteristicas, material.notas, req.params.id]
-    );
-    if (!result.affectedRows) return res.status(404).json({ message: 'Material no encontrado' });
-    res.json({ id: Number(req.params.id), ...material });
+    const [affectedRows] = await db.Material.update(data, {
+      where: { id: req.params.id }
+    });
+    
+    if (!affectedRows) return res.status(404).json({ message: 'Material no encontrado' });
+    
+    const updatedMaterial = await db.Material.findByPk(req.params.id);
+    res.json(updatedMaterial);
   } catch (error) {
     next(error);
   }
@@ -81,8 +64,11 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
-    const [result] = await db.query('DELETE FROM materiales WHERE id = ?', [req.params.id]);
-    if (!result.affectedRows) return res.status(404).json({ message: 'Material no encontrado' });
+    const deletedCount = await db.Material.destroy({
+      where: { id: req.params.id }
+    });
+    
+    if (!deletedCount) return res.status(404).json({ message: 'Material no encontrado' });
     res.status(204).send();
   } catch (error) {
     next(error);

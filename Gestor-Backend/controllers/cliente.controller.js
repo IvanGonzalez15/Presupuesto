@@ -1,7 +1,6 @@
-const db = require('../config/db');
+const db = require('../models');
 
 const normalizeCliente = (body) => ({
-  id: body.id,
   Nombre: body.Nombre,
   Persona_contacto: body.Persona_contacto || null,
   Email_contacto: body.Email_contacto || null,
@@ -10,8 +9,10 @@ const normalizeCliente = (body) => ({
 
 exports.findAll = async (_req, res, next) => {
   try {
-    const [rows] = await db.query('SELECT * FROM clientes ORDER BY Nombre ASC');
-    res.json(rows);
+    const clientes = await db.Cliente.findAll({
+      order: [['Nombre', 'ASC']]
+    });
+    res.json(clientes);
   } catch (error) {
     next(error);
   }
@@ -19,9 +20,9 @@ exports.findAll = async (_req, res, next) => {
 
 exports.findOne = async (req, res, next) => {
   try {
-    const [rows] = await db.query('SELECT * FROM clientes WHERE id = ?', [req.params.id]);
-    if (!rows.length) return res.status(404).json({ message: 'Cliente no encontrado' });
-    res.json(rows[0]);
+    const cliente = await db.Cliente.findByPk(req.params.id);
+    if (!cliente) return res.status(404).json({ message: 'Cliente no encontrado' });
+    res.json(cliente);
   } catch (error) {
     next(error);
   }
@@ -29,17 +30,13 @@ exports.findOne = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-
-    const cliente = normalizeCliente(req.body);
-    if (!cliente.id || !cliente.Nombre) {
-      return res.status(400).json({ message: 'Los campos id y Nombre son obligatorios' });
+    const data = normalizeCliente(req.body);
+    if (!data.Nombre) {
+      return res.status(400).json({ message: 'El campo Nombre es obligatorio' });
     }
 
-    await db.query(
-      'INSERT INTO clientes (id, Nombre, Persona_contacto, Email_contacto, Numero_contacto) VALUES (?, ?, ?, ?, ?)',
-      [cliente.id, cliente.Nombre, cliente.Persona_contacto, cliente.Email_contacto, cliente.Numero_contacto]
-    );
-    res.status(201).json(cliente);
+    const nuevoCliente = await db.Cliente.create(data);
+    res.status(201).json(nuevoCliente);
   } catch (error) {
     next(error);
   }
@@ -47,13 +44,15 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const cliente = normalizeCliente({ ...req.body, id: req.params.id });
-    const [result] = await db.query(
-      'UPDATE clientes SET Nombre = ?, Persona_contacto = ?, Email_contacto = ?, Numero_contacto = ? WHERE id = ?',
-      [cliente.Nombre, cliente.Persona_contacto, cliente.Email_contacto, cliente.Numero_contacto, req.params.id]
-    );
-    if (!result.affectedRows) return res.status(404).json({ message: 'Cliente no encontrado' });
-    res.json(cliente);
+    const data = normalizeCliente(req.body);
+    const [affectedRows] = await db.Cliente.update(data, {
+      where: { id: req.params.id }
+    });
+    
+    if (!affectedRows) return res.status(404).json({ message: 'Cliente no encontrado' });
+    
+    const updatedCliente = await db.Cliente.findByPk(req.params.id);
+    res.json(updatedCliente);
   } catch (error) {
     next(error);
   }
@@ -61,8 +60,11 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
-    const [result] = await db.query('DELETE FROM clientes WHERE id = ?', [req.params.id]);
-    if (!result.affectedRows) return res.status(404).json({ message: 'Cliente no encontrado' });
+    const deletedCount = await db.Cliente.destroy({
+      where: { id: req.params.id }
+    });
+    
+    if (!deletedCount) return res.status(404).json({ message: 'Cliente no encontrado' });
     res.status(204).send();
   } catch (error) {
     next(error);

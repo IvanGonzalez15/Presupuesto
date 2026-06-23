@@ -1,25 +1,44 @@
-const db = require('../config/db');
+const db = require('../models');
 
 const normalizeOptionalInteger = (value) => {
   if (value === undefined || value === null || value === '') return null;
   return Number(value);
 };
 
-const projectSelect = `
-  SELECT p.*, c.Nombre AS Cliente_Nombre, u.nombre AS Responsable_Nombre,
-    colab.nombre AS Colaboradores_Nombre,
-    COALESCE(SUM(e.Cantidad * e.Precio), 0) AS Total
-  FROM proyectos p
-  LEFT JOIN clientes c ON c.id = p.Id_Cliente
-  LEFT JOIN usuarios u ON u.id = p.Responsable
-  LEFT JOIN usuarios colab ON colab.id = p.Colaboradores
-  LEFT JOIN elementos e ON e.Id_proyecto = p.id
-`;
-
 exports.findAll = async (_req, res, next) => {
   try {
-    const [rows] = await db.query(`${projectSelect} GROUP BY p.id ORDER BY p.Fecha_entrega DESC`);
-    res.json(rows);
+    const proyectos = await db.Proyecto.findAll({
+      include: [
+        { model: db.Cliente, as: 'Cliente' },
+        { model: db.Usuario, as: 'UsuarioResponsable' },
+        { model: db.Usuario, as: 'UsuarioColaborador' },
+        { model: db.Elemento, as: 'Elementos' }
+      ],
+      order: [['Fecha_entrega', 'DESC']]
+    });
+
+    const response = proyectos.map(p => {
+      const projJson = p.toJSON();
+      
+      // Flatten names to match what the frontend expects
+      projJson.Cliente_Nombre = projJson.Cliente?.Nombre || '';
+      projJson.Responsable_Nombre = projJson.UsuarioResponsable?.nombre || '';
+      projJson.Colaboradores_Nombre = projJson.UsuarioColaborador?.nombre || '';
+      
+      // Calculate Total
+      const total = (projJson.Elementos || []).reduce(
+        (sum, item) => sum + Number(item.Cantidad || 0) * Number(item.Precio || 0),
+        0
+      );
+      projJson.Total = total;
+      
+      // Remove Elementos to keep payload minimal for the list view
+      delete projJson.Elementos;
+      
+      return projJson;
+    });
+
+    res.json(response);
   } catch (error) {
     next(error);
   }
@@ -27,11 +46,37 @@ exports.findAll = async (_req, res, next) => {
 
 exports.findOne = async (req, res, next) => {
   try {
-    const [[project]] = await db.query(`${projectSelect} WHERE p.id = ? GROUP BY p.id`, [req.params.id]);
-    if (!project) return res.status(404).json({ message: 'Proyecto no encontrado' });
+    const proyecto = await db.Proyecto.findByPk(req.params.id, {
+      include: [
+        { model: db.Cliente, as: 'Cliente' },
+        { model: db.Usuario, as: 'UsuarioResponsable' },
+        { model: db.Usuario, as: 'UsuarioColaborador' },
+        { model: db.Elemento, as: 'Elementos' }
+      ]
+    });
 
-    const [elementos] = await db.query('SELECT * FROM elementos WHERE Id_proyecto = ? ORDER BY id DESC', [req.params.id]);
-    res.json({ ...project, Elementos: elementos });
+    if (!proyecto) return res.status(404).json({ message: 'Proyecto no encontrado' });
+
+    const projJson = proyecto.toJSON();
+    
+    // Flatten names
+    projJson.Cliente_Nombre = projJson.Cliente?.Nombre || '';
+    projJson.Responsable_Nombre = projJson.UsuarioResponsable?.nombre || '';
+    projJson.Colaboradores_Nombre = projJson.UsuarioColaborador?.nombre || '';
+    
+    // Calculate Total
+    const total = (projJson.Elementos || []).reduce(
+      (sum, item) => sum + Number(item.Cantidad || 0) * Number(item.Precio || 0),
+      0
+    );
+    projJson.Total = total;
+    
+    // Sort elements by id DESC
+    if (projJson.Elementos) {
+      projJson.Elementos.sort((a, b) => b.id - a.id);
+    }
+
+    res.json(projJson);
   } catch (error) {
     next(error);
   }
@@ -47,25 +92,18 @@ exports.create = async (req, res, next) => {
       return res.status(400).json({ message: 'El nombre del proyecto (proyecto), Fecha_entrega, Responsable e Id_Cliente son obligatorios' });
     }
 
-    // Fetch client and responsable names to construct the project code
-    const [[clientRow]] = await db.query('SELECT Nombre FROM clientes WHERE id = ?', [Id_Cliente]);
-    const [[userRow]] = await db.query('SELECT nombre FROM usuarios WHERE id = ?', [Responsable]);
+    const cliente = await db.Cliente.findByPk(Id_Cliente);
+    const responsable = await db.Usuario.findByPk(Responsable);
 
     const firstLetter = (str) => String(str || '').trim().charAt(0).toUpperCase() || 'X';
 
-    const clientChar = firstLetter(clientRow?.Nombre);
+    const clientChar = firstLetter(cliente?.Nombre);
     const projectChar = firstLetter(nombreProyecto);
-    const respChar = firstLetter(userRow?.nombre);
+    const respChar = firstLetter(responsable?.nombre);
 
     const calculatedCodigo = `${clientChar}${projectChar}-${respChar}`;
 
-    const [result] = await db.query(
-      'INSERT INTO proyectos (proyecto, Codigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente) VALUES (?, ?, ?, ?, ?, ?)',
-      [nombreProyecto, calculatedCodigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente]
-    );
-
-    res.status(201).json({
-      id: result.insertId,
+    const nuevoProyecto = await db.Proyecto.create({
       proyecto: nombreProyecto,
       Codigo: calculatedCodigo,
       Fecha_entrega,
@@ -73,6 +111,8 @@ exports.create = async (req, res, next) => {
       Responsable,
       Id_Cliente
     });
+
+    res.status(201).json(nuevoProyecto);
   } catch (error) {
     next(error);
   }
@@ -88,33 +128,32 @@ exports.update = async (req, res, next) => {
       return res.status(400).json({ message: 'El nombre del proyecto (proyecto), Fecha_entrega, Responsable e Id_Cliente son obligatorios' });
     }
 
-    const [[clientRow]] = await db.query('SELECT Nombre FROM clientes WHERE id = ?', [Id_Cliente]);
-    const [[userRow]] = await db.query('SELECT nombre FROM usuarios WHERE id = ?', [Responsable]);
+    const cliente = await db.Cliente.findByPk(Id_Cliente);
+    const responsable = await db.Usuario.findByPk(Responsable);
 
     const firstLetter = (str) => String(str || '').trim().charAt(0).toUpperCase() || 'X';
 
-    const clientChar = firstLetter(clientRow?.Nombre);
+    const clientChar = firstLetter(cliente?.Nombre);
     const projectChar = firstLetter(nombreProyecto);
-    const respChar = firstLetter(userRow?.nombre);
+    const respChar = firstLetter(responsable?.nombre);
 
     const calculatedCodigo = `${clientChar}${projectChar}-${respChar}`;
 
-    const [result] = await db.query(
-      'UPDATE proyectos SET proyecto = ?, Codigo = ?, Fecha_entrega = ?, Colaboradores = ?, Responsable = ?, Id_Cliente = ? WHERE id = ?',
-      [nombreProyecto, calculatedCodigo, Fecha_entrega, Colaboradores, Responsable, Id_Cliente, req.params.id]
-    );
-
-    if (!result.affectedRows) return res.status(404).json({ message: 'Proyecto no encontrado' });
-
-    res.json({
-      id: Number(req.params.id),
+    const [affectedRows] = await db.Proyecto.update({
       proyecto: nombreProyecto,
       Codigo: calculatedCodigo,
       Fecha_entrega,
       Colaboradores,
       Responsable,
       Id_Cliente
+    }, {
+      where: { id: req.params.id }
     });
+
+    if (!affectedRows) return res.status(404).json({ message: 'Proyecto no encontrado' });
+
+    const updatedProyecto = await db.Proyecto.findByPk(req.params.id);
+    res.json(updatedProyecto);
   } catch (error) {
     next(error);
   }
@@ -122,8 +161,11 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
-    const [result] = await db.query('DELETE FROM proyectos WHERE id = ?', [req.params.id]);
-    if (!result.affectedRows) return res.status(404).json({ message: 'Proyecto no encontrado' });
+    const deletedCount = await db.Proyecto.destroy({
+      where: { id: req.params.id }
+    });
+    
+    if (!deletedCount) return res.status(404).json({ message: 'Proyecto no encontrado' });
     res.status(204).send();
   } catch (error) {
     next(error);

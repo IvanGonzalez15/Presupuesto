@@ -1,11 +1,12 @@
-const db = require('../config/db');
+const db = require('../models');
 
 exports.findAll = async (_req, res, next) => {
   try {
-    const [rows] = await db.query(
-      'SELECT id, nombre, email, rol, Activo, Ultimo_acceso, Created_At, Updated_At FROM usuarios ORDER BY nombre ASC'
-    );
-    res.json(rows);
+    const usuarios = await db.Usuario.findAll({
+      attributes: { exclude: ['password_hash'] },
+      order: [['nombre', 'ASC']]
+    });
+    res.json(usuarios);
   } catch (error) {
     next(error);
   }
@@ -13,12 +14,11 @@ exports.findAll = async (_req, res, next) => {
 
 exports.findOne = async (req, res, next) => {
   try {
-    const [rows] = await db.query(
-      'SELECT id, nombre, email, rol, Activo, Ultimo_acceso, Created_At, Updated_At FROM usuarios WHERE id = ?',
-      [req.params.id]
-    );
-    if (!rows.length) return res.status(404).json({ message: 'Usuario no encontrado' });
-    res.json(rows[0]);
+    const usuario = await db.Usuario.findByPk(req.params.id, {
+      attributes: { exclude: ['password_hash'] }
+    });
+    if (!usuario) return res.status(404).json({ message: 'Usuario no encontrado' });
+    res.json(usuario);
   } catch (error) {
     next(error);
   }
@@ -31,11 +31,17 @@ exports.create = async (req, res, next) => {
       return res.status(400).json({ message: 'nombre, password_hash y rol son obligatorios' });
     }
 
-    const [result] = await db.query(
-      'INSERT INTO usuarios (nombre, email, password_hash, rol, Activo) VALUES (?, ?, ?, ?, ?)',
-      [nombre, email, password_hash, rol, Activo]
-    );
-    res.status(201).json({ id: result.insertId, nombre, email, rol, Activo });
+    const nuevoUsuario = await db.Usuario.create({
+      nombre,
+      email,
+      password_hash,
+      rol,
+      Activo
+    });
+
+    const respuesta = nuevoUsuario.toJSON();
+    delete respuesta.password_hash;
+    res.status(201).json(respuesta);
   } catch (error) {
     next(error);
   }
@@ -45,21 +51,22 @@ exports.update = async (req, res, next) => {
   try {
     const { nombre, email = null, password_hash, rol, Activo = 1 } = req.body;
     
+    const updateData = { nombre, email, rol, Activo };
     if (password_hash) {
-      const [result] = await db.query(
-        'UPDATE usuarios SET nombre = ?, email = ?, password_hash = ?, rol = ?, Activo = ? WHERE id = ?',
-        [nombre, email, password_hash, rol, Activo, req.params.id]
-      );
-      if (!result.affectedRows) return res.status(404).json({ message: 'Usuario no encontrado' });
-    } else {
-      const [result] = await db.query(
-        'UPDATE usuarios SET nombre = ?, email = ?, rol = ?, Activo = ? WHERE id = ?',
-        [nombre, email, rol, Activo, req.params.id]
-      );
-      if (!result.affectedRows) return res.status(404).json({ message: 'Usuario no encontrado' });
+      updateData.password_hash = password_hash;
     }
+
+    const [affectedRows] = await db.Usuario.update(updateData, {
+      where: { id: req.params.id }
+    });
     
-    res.json({ id: Number(req.params.id), nombre, email, rol, Activo });
+    if (!affectedRows) return res.status(404).json({ message: 'Usuario no encontrado' });
+    
+    const updatedUsuario = await db.Usuario.findByPk(req.params.id, {
+      attributes: { exclude: ['password_hash'] }
+    });
+    
+    res.json(updatedUsuario);
   } catch (error) {
     next(error);
   }
@@ -67,8 +74,11 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
-    const [result] = await db.query('DELETE FROM usuarios WHERE id = ?', [req.params.id]);
-    if (!result.affectedRows) return res.status(404).json({ message: 'Usuario no encontrado' });
+    const deletedCount = await db.Usuario.destroy({
+      where: { id: req.params.id }
+    });
+    
+    if (!deletedCount) return res.status(404).json({ message: 'Usuario no encontrado' });
     res.status(204).send();
   } catch (error) {
     next(error);
