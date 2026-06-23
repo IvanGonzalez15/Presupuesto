@@ -1,3 +1,5 @@
+import { BASE_URL } from '../services/api';
+
 export const parseElementExtraData = (item) => {
   try {
     if (item && item.Foto && item.Foto.trim().startsWith('{')) {
@@ -18,4 +20,23 @@ export const parseElementExtraData = (item) => {
 
 export const serializeElementExtraData = (extraData) => {
   return JSON.stringify(extraData);
+};
+
+export const getPhotoUrl = (foto) => {
+  if (!foto) return '';
+  let path = foto;
+  if (typeof foto === 'string' && foto.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(foto);
+      path = parsed.fotoUrl || '';
+    } catch (e) {
+      console.error('Error parsing photo JSON:', e);
+      path = '';
+    }
+  }
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:')) {
+    return path;
+  }
+  return `${BASE_URL}${path}`;
 };
