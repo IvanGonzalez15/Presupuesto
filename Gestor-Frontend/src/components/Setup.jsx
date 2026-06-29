@@ -11,7 +11,8 @@ export default function Setup({
   createCliente,
   createProyecto,
   onUserCreate,
-  statusMessage
+  statusMessage,
+  setStatus
 }) {
   const [clientDraft, setClientDraft] = useState(initialClient);
   const [projectDraft, setProjectDraft] = useState(initialProject);
@@ -77,11 +78,11 @@ export default function Setup({
   const handleProjectSubmit = (e) => {
     e.preventDefault();
     if (!projectDraft.Responsable) {
-      alert('Por favor, selecciona un responsable para el proyecto.');
+      setStatus('Por favor, selecciona un responsable para el proyecto.');
       return;
     }
     if (!projectDraft.Id_Cliente) {
-      alert('Por favor, selecciona un cliente para el proyecto.');
+      setStatus('Por favor, selecciona un cliente para el proyecto.');
       return;
     }
     createProyecto(projectDraft);
@@ -96,7 +97,7 @@ export default function Setup({
     e.preventDefault();
     if (userDraft.nombre.trim() && userDraft.password.trim() && userDraft.rol) {
       if (userDraft.rol === 'Colaborador' && !userDraft.proyectoId) {
-        alert('Por favor, selecciona un proyecto para el colaborador.');
+        setStatus('Por favor, selecciona un proyecto para el colaborador.');
         return;
       }
       onUserCreate(userDraft);

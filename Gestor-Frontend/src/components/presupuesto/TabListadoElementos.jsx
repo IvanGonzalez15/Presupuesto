@@ -13,7 +13,8 @@ export default function TabListadoElementos({
   updateElementQuantity,
   deleteElemento,
   money,
-  total
+  total,
+  setStatus
 }) {
   const [dragOverForm, setDragOverForm] = useState(false);
   const [uploadingForm, setUploadingForm] = useState(false);
@@ -45,7 +46,7 @@ export default function TabListadoElementos({
         const url = await handleUploadPhoto(file);
         setItemDraft((current) => ({ ...current, Foto: url }));
       } catch (err) {
-        alert('Error al subir la imagen: ' + err.message);
+        setStatus(`Error al subir la imagen: ${err.message}`);
       } finally {
         setUploadingForm(false);
       }
@@ -55,7 +56,7 @@ export default function TabListadoElementos({
         const url = await handleUploadPhoto(file);
         await updateElementPhoto(targetItem, url);
       } catch (err) {
-        alert('Error al subir la imagen: ' + err.message);
+        setStatus(`Error al subir la imagen: ${err.message}`);
       } finally {
         setUploadingTableId(null);
       }

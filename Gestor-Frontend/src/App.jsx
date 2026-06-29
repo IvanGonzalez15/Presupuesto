@@ -133,6 +133,7 @@ function App() {
             createProyecto={createProyecto}
             onUserCreate={handleUserCreate}
             statusMessage={status}
+            setStatus={setStatus}
           />
         )}
 
@@ -176,6 +177,7 @@ function App() {
             setSelectedClientIdFilter={setSelectedClientIdFilter}
             handleUploadPhoto={handleUploadPhoto}
             updateElementPhoto={updateElementPhoto}
+            setStatus={setStatus}
           />
         )}
       </main>

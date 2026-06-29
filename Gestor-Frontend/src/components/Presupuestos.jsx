@@ -36,7 +36,8 @@ export default function Presupuestos({
   selectedClientIdFilter,
   setSelectedClientIdFilter,
   handleUploadPhoto,
-  updateElementPhoto
+  updateElementPhoto,
+  setStatus
 }) {
   const initialItem = { Nombre: '', Foto: '', Cantidad: 1, Unidad_de_medida: 'ud', Precio: 0, medida_metro_cuadrado: 0, medida_metro_cubico: 0 };
   const [itemDraft, setItemDraft] = useState(initialItem);
@@ -178,6 +179,7 @@ export default function Presupuestos({
                 deleteElemento={deleteElemento}
                 money={money}
                 total={total}
+                setStatus={setStatus}
               />
             )}
 
