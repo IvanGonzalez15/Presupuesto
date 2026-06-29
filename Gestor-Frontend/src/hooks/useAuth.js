@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { authService } from '../services/api';
 
 const decodeJWT = (token) => {
@@ -19,6 +19,13 @@ const decodeJWT = (token) => {
   }
 };
 
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  const payload = decodeJWT(token);
+  if (!payload?.exp) return true;
+  return payload.exp * 1000 < Date.now();
+};
+
 export default function useAuth() {
   const [theme, setTheme] = useState(localStorage.getItem('lx_theme_preference') || 'dark');
 
@@ -31,7 +38,16 @@ export default function useAuth() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  const [token, setToken] = useState(localStorage.getItem('lx_token') || '');
+  // Clear expired token on load so the user sees login rather than a broken state
+  const [token, setToken] = useState(() => {
+    const stored = localStorage.getItem('lx_token') || '';
+    if (stored && isTokenExpired(stored)) {
+      localStorage.removeItem('lx_token');
+      return '';
+    }
+    return stored;
+  });
+
   const currentUser = useMemo(() => decodeJWT(token), [token]);
   const [loginError, setLoginError] = useState('');
 
@@ -41,7 +57,7 @@ export default function useAuth() {
       const { data } = await authService.login(nombre, password);
       localStorage.setItem('lx_token', data.token);
       setToken(data.token);
-      if (setStatus) setStatus(`¡Bienvenido, ${data.user.nombre}!`);
+      if (setStatus) setStatus(`Bienvenido, ${data.user.nombre}!`);
     } catch (err) {
       setLoginError(err.response?.data?.message || 'Error de red al conectar al servidor');
     }
@@ -59,10 +75,8 @@ export default function useAuth() {
     theme,
     toggleTheme,
     token,
-    setToken,
     currentUser,
     loginError,
-    setLoginError,
     handleLogin,
     handleLogout
   };

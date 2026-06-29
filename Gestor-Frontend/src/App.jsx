@@ -52,7 +52,6 @@ function App() {
     selectedProject,
     projectItems,
     total,
-    totalManufacturingCost,
     refreshProjects
   } = useDashboardData(
     token,
@@ -164,7 +163,6 @@ function App() {
             usuarios={usuarios}
             handleProjectFieldChange={handleProjectFieldChange}
             total={total}
-            totalManufacturingCost={totalManufacturingCost}
             createElemento={createElemento}
             projectItems={projectItems}
             updateElementQuantity={updateElementQuantity}

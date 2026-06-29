@@ -56,8 +56,10 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'Responsable',
       as: 'ProyectosComoResponsable'
     });
-    Usuario.hasMany(models.Proyecto, {
-      foreignKey: 'Colaboradores',
+    Usuario.belongsToMany(models.Proyecto, {
+      through: 'ProyectoColaborador',
+      foreignKey: 'UsuarioId',
+      otherKey: 'ProyectoId',
       as: 'ProyectosComoColaborador'
     });
     Usuario.hasMany(models.Elemento, {

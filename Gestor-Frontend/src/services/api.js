@@ -16,7 +16,17 @@ api.interceptors.request.use(
     }
     return config;
   },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor to handle expired or invalid tokens globally
+api.interceptors.response.use(
+  (response) => response,
   (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('lx_token');
+      window.location.reload();
+    }
     return Promise.reject(error);
   }
 );

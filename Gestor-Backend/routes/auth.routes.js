@@ -66,10 +66,10 @@ router.post('/register', authenticateToken, authorizeRoles('Admin'), hashPasswor
     });
 
     if (String(rol).toLowerCase() === 'colaborador' && proyectoId) {
-      await db.Proyecto.update(
-        { Colaboradores: nuevoUsuario.id },
-        { where: { id: Number(proyectoId) } }
-      );
+      const proyecto = await db.Proyecto.findByPk(Number(proyectoId));
+      if (proyecto) {
+        await proyecto.addColaborador(nuevoUsuario.id);
+      }
     }
 
     res.status(201).json({
