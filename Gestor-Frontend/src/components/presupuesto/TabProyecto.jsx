@@ -3,7 +3,6 @@ import React from 'react';
 export default function TabProyecto({
   selectedProject,
   total,
-  totalManufacturingCost,
   money
 }) {
   return (
@@ -40,24 +39,12 @@ export default function TabProyecto({
         </div>
       </div>
 
-      {/* Tarjetas Resumen de Costes del Proyecto */}
+      {/* Tarjeta Resumen de Costes del Proyecto */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
         <div style={{ background: 'var(--color-surface-container)', padding: '20px', borderRadius: '6px', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Precio Venta Total</span>
           <h3 style={{ fontSize: '1.8rem', color: 'var(--color-success)', margin: '4px 0 0 0', fontWeight: '800' }}>
             {money.format(total)}
-          </h3>
-        </div>
-        <div style={{ background: 'var(--color-surface-container)', padding: '20px', borderRadius: '6px', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Coste Fabricación Estimado</span>
-          <h3 style={{ fontSize: '1.8rem', color: 'var(--color-primary)', margin: '4px 0 0 0', fontWeight: '800' }}>
-            {money.format(totalManufacturingCost)}
-          </h3>
-        </div>
-        <div style={{ background: 'var(--color-surface-container)', padding: '20px', borderRadius: '6px', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Margen Industrial Estimado</span>
-          <h3 style={{ fontSize: '1.8rem', color: (total - totalManufacturingCost) >= 0 ? 'var(--color-success)' : 'var(--color-danger)', margin: '4px 0 0 0', fontWeight: '800' }}>
-            {money.format(total - totalManufacturingCost)}
           </h3>
         </div>
       </div>

@@ -5,13 +5,15 @@ const normalizeOptionalInteger = (value) => {
   return Number(value);
 };
 
+const firstLetter = (str) => String(str || '').trim().charAt(0).toUpperCase() || 'X';
+
 exports.findAll = async (_req, res, next) => {
   try {
     const proyectos = await db.Proyecto.findAll({
       include: [
         { model: db.Cliente, as: 'Cliente' },
         { model: db.Usuario, as: 'UsuarioResponsable' },
-        { model: db.Usuario, as: 'UsuarioColaborador' },
+        { model: db.Usuario, as: 'Colaboradores' },
         { model: db.Elemento, as: 'Elementos' }
       ],
       order: [['Fecha_entrega', 'DESC']]
@@ -23,7 +25,7 @@ exports.findAll = async (_req, res, next) => {
       // Flatten names to match what the frontend expects
       projJson.Cliente_Nombre = projJson.Cliente?.Nombre || '';
       projJson.Responsable_Nombre = projJson.UsuarioResponsable?.nombre || '';
-      projJson.Colaboradores_Nombre = projJson.UsuarioColaborador?.nombre || '';
+      projJson.Colaboradores_Nombre = (projJson.Colaboradores || []).map(u => u.nombre).join(', ') || 'Ninguno';
       
       // Calculate Total
       const total = (projJson.Elementos || []).reduce(
@@ -50,7 +52,7 @@ exports.findOne = async (req, res, next) => {
       include: [
         { model: db.Cliente, as: 'Cliente' },
         { model: db.Usuario, as: 'UsuarioResponsable' },
-        { model: db.Usuario, as: 'UsuarioColaborador' },
+        { model: db.Usuario, as: 'Colaboradores' },
         { model: db.Elemento, as: 'Elementos' }
       ]
     });
@@ -62,7 +64,8 @@ exports.findOne = async (req, res, next) => {
     // Flatten names
     projJson.Cliente_Nombre = projJson.Cliente?.Nombre || '';
     projJson.Responsable_Nombre = projJson.UsuarioResponsable?.nombre || '';
-    projJson.Colaboradores_Nombre = projJson.UsuarioColaborador?.nombre || '';
+    projJson.Colaboradores_Nombre = (projJson.Colaboradores || []).map(u => u.nombre).join(', ') || 'Ninguno';
+    projJson.Colaboradores_Ids = (projJson.Colaboradores || []).map(u => u.id);
     
     // Calculate Total
     const total = (projJson.Elementos || []).reduce(
@@ -86,7 +89,7 @@ exports.create = async (req, res, next) => {
   try {
     const { Fecha_entrega, Responsable, Id_Cliente } = req.body;
     const nombreProyecto = req.body.proyecto || req.body.Codigo;
-    const Colaboradores = normalizeOptionalInteger(req.body.Colaboradores);
+    const ColaboradoresIds = Array.isArray(req.body.Colaboradores) ? req.body.Colaboradores : [];
 
     if (!nombreProyecto || !Fecha_entrega || !Responsable || !Id_Cliente) {
       return res.status(400).json({ message: 'El nombre del proyecto (proyecto), Fecha_entrega, Responsable e Id_Cliente son obligatorios' });
@@ -94,8 +97,6 @@ exports.create = async (req, res, next) => {
 
     const cliente = await db.Cliente.findByPk(Id_Cliente);
     const responsable = await db.Usuario.findByPk(Responsable);
-
-    const firstLetter = (str) => String(str || '').trim().charAt(0).toUpperCase() || 'X';
 
     const clientChar = firstLetter(cliente?.Nombre);
     const projectChar = firstLetter(nombreProyecto);
@@ -107,13 +108,21 @@ exports.create = async (req, res, next) => {
       proyecto: nombreProyecto,
       Codigo: calculatedCodigo,
       Fecha_entrega,
-      Colaboradores,
       Responsable,
       Id_Cliente
     });
 
+    if (ColaboradoresIds.length > 0) {
+      await nuevoProyecto.setColaboradores(ColaboradoresIds);
+    }
+
     res.status(201).json(nuevoProyecto);
   } catch (error) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        message: `Ya existe un proyecto con el código '${error.fields?.Codigo || 'duplicado'}'. Cambia el nombre del proyecto, el cliente o el responsable para generar un código único.`
+      });
+    }
     next(error);
   }
 };
@@ -122,7 +131,7 @@ exports.update = async (req, res, next) => {
   try {
     const { Fecha_entrega, Responsable, Id_Cliente } = req.body;
     const nombreProyecto = req.body.proyecto || req.body.Codigo;
-    const Colaboradores = normalizeOptionalInteger(req.body.Colaboradores);
+    const ColaboradoresIds = Array.isArray(req.body.Colaboradores) ? req.body.Colaboradores : [];
 
     if (!nombreProyecto || !Fecha_entrega || !Responsable || !Id_Cliente) {
       return res.status(400).json({ message: 'El nombre del proyecto (proyecto), Fecha_entrega, Responsable e Id_Cliente son obligatorios' });
@@ -131,30 +140,35 @@ exports.update = async (req, res, next) => {
     const cliente = await db.Cliente.findByPk(Id_Cliente);
     const responsable = await db.Usuario.findByPk(Responsable);
 
-    const firstLetter = (str) => String(str || '').trim().charAt(0).toUpperCase() || 'X';
-
     const clientChar = firstLetter(cliente?.Nombre);
     const projectChar = firstLetter(nombreProyecto);
     const respChar = firstLetter(responsable?.nombre);
 
     const calculatedCodigo = `${clientChar}${projectChar}-${respChar}`;
 
-    const [affectedRows] = await db.Proyecto.update({
+    const proyecto = await db.Proyecto.findByPk(req.params.id);
+    if (!proyecto) return res.status(404).json({ message: 'Proyecto no encontrado' });
+
+    await db.Proyecto.update({
       proyecto: nombreProyecto,
       Codigo: calculatedCodigo,
       Fecha_entrega,
-      Colaboradores,
       Responsable,
       Id_Cliente
     }, {
       where: { id: req.params.id }
     });
 
-    if (!affectedRows) return res.status(404).json({ message: 'Proyecto no encontrado' });
+    await proyecto.setColaboradores(ColaboradoresIds);
 
     const updatedProyecto = await db.Proyecto.findByPk(req.params.id);
     res.json(updatedProyecto);
   } catch (error) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({
+        message: `Ya existe otro proyecto con el código generado. Cambia el nombre del proyecto, el cliente o el responsable para generar un código único.`
+      });
+    }
     next(error);
   }
 };

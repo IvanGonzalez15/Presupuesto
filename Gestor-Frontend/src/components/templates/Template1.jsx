@@ -40,7 +40,7 @@ export default function Template1({ company, project, items, total, money, templ
 
   const options = templateOptions || defaultOptions;
 
-  const [openDropdown, setOpenDropdown] = React.useState(null); // 'noIncluido' | 'formaPago' | 'iban' | 'importante' | 'descripcion'
+  const [openDropdown, setOpenDropdown] = React.useState(null);
   
   const [selectedNoIncluido, setSelectedNoIncluido] = React.useState(0);
   const [selectedFormaPago, setSelectedFormaPago] = React.useState(0);
@@ -48,12 +48,10 @@ export default function Template1({ company, project, items, total, money, templ
   const [selectedImportante, setSelectedImportante] = React.useState(0);
   const [selectedDescripcion, setSelectedDescripcion] = React.useState(0);
 
-  // Reset selected IBAN index when company changes
   React.useEffect(() => {
     setSelectedIban(0);
   }, [company]);
 
-  // Close dropdown on click outside
   React.useEffect(() => {
     function handleClickOutside() {
       setOpenDropdown(null);
@@ -65,13 +63,13 @@ export default function Template1({ company, project, items, total, money, templ
   const ibans = company.ibans || (company.iban ? [company.iban] : (options.iban || []));
 
   const handleLabelClick = (e, key) => {
-    e.stopPropagation(); // Avoid triggering document click
+    e.stopPropagation();
     setOpenDropdown(openDropdown === key ? null : key);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Cabecera del presupuesto corporativo */}
+      {}
       <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid var(--color-border)', paddingBottom: '20px' }}>
         <div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: '800', margin: '0 0 6px 0', color: 'var(--color-text-primary)' }}>

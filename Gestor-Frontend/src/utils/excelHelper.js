@@ -69,7 +69,7 @@ export const handleImportExcel = (event, selectedProjectId, currentUser, refresh
       }
       
       await refreshProjects();
-      const elementsRes = await elementService.getAll();
+      const elementsRes = await elementService.getAll(selectedProjectId);
       setElementos(elementsRes.data);
       setStatus(`Importadas ${count} partidas desde Excel.`);
     } catch (err) {

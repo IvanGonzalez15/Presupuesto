@@ -21,10 +21,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: false
     },
-    Colaboradores: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
     Responsable: {
       type: DataTypes.INTEGER,
       allowNull: false
@@ -48,9 +44,11 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'Responsable',
       as: 'UsuarioResponsable'
     });
-    Proyecto.belongsTo(models.Usuario, {
-      foreignKey: 'Colaboradores',
-      as: 'UsuarioColaborador'
+    Proyecto.belongsToMany(models.Usuario, {
+      through: 'ProyectoColaborador',
+      foreignKey: 'ProyectoId',
+      otherKey: 'UsuarioId',
+      as: 'Colaboradores'
     });
     Proyecto.hasMany(models.Elemento, {
       foreignKey: 'Id_proyecto',

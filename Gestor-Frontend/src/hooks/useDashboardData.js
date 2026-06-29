@@ -56,8 +56,6 @@ export default function useDashboardData(token, currentUser, handleLogout) {
     [projectItems]
   );
 
-  const totalManufacturingCost = useMemo(() => total, [total]);
-
   const refreshProjects = async () => {
     try {
       const { data } = await projectService.getAll();
@@ -148,7 +146,6 @@ export default function useDashboardData(token, currentUser, handleLogout) {
     selectedProject,
     projectItems,
     total,
-    totalManufacturingCost,
     refreshProjects
   };
 }

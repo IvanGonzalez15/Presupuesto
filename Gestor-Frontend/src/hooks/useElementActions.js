@@ -55,7 +55,7 @@ export default function useElementActions({
     try {
       const payload = {
         ...projectDraft,
-        Colaboradores: projectDraft.Colaboradores ? Number(projectDraft.Colaboradores) : null,
+        Colaboradores: Array.isArray(projectDraft.Colaboradores) ? projectDraft.Colaboradores.map(Number) : [],
         Responsable: Number(projectDraft.Responsable),
         Id_Cliente: Number(projectDraft.Id_Cliente),
       };
@@ -181,7 +181,7 @@ export default function useElementActions({
     pendingUpdates.current[itemId] = setTimeout(async () => {
       await updateFn();
       delete pendingUpdates.current[itemId];
-    }, 800);
+    }, 300);
   };
 
   const updateElementExtraValue = (item, fieldGroup, key, val) => {
@@ -262,7 +262,9 @@ export default function useElementActions({
         Fecha_entrega: selectedProject.Fecha_entrega,
         Responsable: Number(selectedProject.Responsable),
         Id_Cliente: Number(selectedProject.Id_Cliente),
-        Colaboradores: selectedProject.Colaboradores ? Number(selectedProject.Colaboradores) : null
+        Colaboradores: Array.isArray(selectedProject.Colaboradores_Ids) 
+          ? selectedProject.Colaboradores_Ids 
+          : (Array.isArray(selectedProject.Colaboradores) ? selectedProject.Colaboradores.map(c => c.id) : [])
       };
       await projectService.update(selectedProject.id, payload);
       await refreshProjects();

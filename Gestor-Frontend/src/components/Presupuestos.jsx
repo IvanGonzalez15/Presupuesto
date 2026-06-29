@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { exportToPDF } from '../utils/pdfHelper';
-import { BASE_URL } from '../services/api';
+import api from '../services/api';
 
 // Modular child components
 import ProjectSidebar from './presupuesto/ProjectSidebar';
@@ -24,7 +24,6 @@ export default function Presupuestos({
   clientes,
   usuarios,
   total,
-  totalManufacturingCost,
   createElemento,
   projectItems,
   updateElementQuantity,
@@ -48,19 +47,17 @@ export default function Presupuestos({
   const [templateOptions, setTemplateOptions] = useState(null);
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/empresas`)
-      .then(res => res.json())
-      .then(data => {
-        setCompanies(data);
-        if (data.length > 0) {
-          setSelectedCompanyId(data[0].id);
+    api.get('/empresas')
+      .then(res => {
+        setCompanies(res.data);
+        if (res.data.length > 0) {
+          setSelectedCompanyId(res.data[0].id);
         }
       })
       .catch(err => console.error('Error fetching companies:', err));
 
-    fetch(`${BASE_URL}/api/templateoptions`)
-      .then(res => res.json())
-      .then(data => setTemplateOptions(data))
+    api.get('/templateoptions')
+      .then(res => setTemplateOptions(res.data))
       .catch(err => console.error('Error fetching template options:', err));
   }, []);
 
@@ -163,7 +160,6 @@ export default function Presupuestos({
               <TabProyecto
                 selectedProject={selectedProject}
                 total={total}
-                totalManufacturingCost={totalManufacturingCost}
                 money={money}
               />
             )}
@@ -204,10 +200,6 @@ export default function Presupuestos({
 
             {subTab === '04-presupuesto' && (
               <TabPresupuestoFormal
-                isAdmin={isAdmin}
-                selectedClientIdFilter={selectedClientIdFilter}
-                setSelectedClientIdFilter={setSelectedClientIdFilter}
-                clientes={clientes}
                 selectedCompanyId={selectedCompanyId}
                 setSelectedCompanyId={setSelectedCompanyId}
                 companies={companies}

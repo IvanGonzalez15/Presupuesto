@@ -38,7 +38,7 @@ export default function TabCalculoPresupuesto({
               <th rowSpan={2} style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)' }}>PIEZA</th>
               <th rowSpan={2} style={{ padding: '8px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)' }}>UDS</th>
               <th colSpan={5} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MATERIALES</th>
-              <th colSpan={5} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MANO DE OBRA / PROCESOS (horas)</th>
+              <th colSpan={7} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MANO DE OBRA / PROCESOS (horas)</th>
               <th rowSpan={2} style={{ padding: '8px', textAlign: 'right', fontSize: '0.75rem' }}>PRECIO CALC.</th>
             </tr>
             <tr style={{ background: 'var(--color-sheet-header-bg)', borderBottom: '2px solid var(--color-sheet-border)' }}>
@@ -51,7 +51,9 @@ export default function TabCalculoPresupuesto({
               <th style={{ padding: '6px', fontSize: '0.7rem', textAlign: 'center' }}>Progr.</th>
               <th style={{ padding: '6px', fontSize: '0.7rem', textAlign: 'center' }}>Mecan.</th>
               <th style={{ padding: '6px', fontSize: '0.7rem', textAlign: 'center' }}>Lijar</th>
-              <th style={{ padding: '6px', fontSize: '0.7rem', textAlign: 'center', borderRight: '1px solid var(--color-sheet-border)' }}>Esculpir</th>
+              <th style={{ padding: '6px', fontSize: '0.7rem', textAlign: 'center' }}>Esculpir</th>
+              <th style={{ padding: '6px', fontSize: '0.7rem', textAlign: 'center' }}>Line-X</th>
+              <th style={{ padding: '6px', fontSize: '0.7rem', textAlign: 'center', borderRight: '1px solid var(--color-sheet-border)' }}>Fibra</th>
             </tr>
           </thead>
           <tbody>
@@ -99,8 +101,14 @@ export default function TabCalculoPresupuesto({
                   <td style={{ padding: '4px', textAlign: 'center' }}>
                     <input type="number" min="0" step="0.5" value={extra.hours.prepost || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'prepost', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
                   </td>
-                  <td style={{ padding: '4px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>
+                  <td style={{ padding: '4px', textAlign: 'center' }}>
                     <input type="number" min="0" step="0.5" value={extra.hours.esculpir || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'esculpir', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
+                  </td>
+                  <td style={{ padding: '4px', textAlign: 'center' }}>
+                    <input type="number" min="0" step="0.5" value={extra.hours.linex || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'linex', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
+                  </td>
+                  <td style={{ padding: '4px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>
+                    <input type="number" min="0" step="0.5" value={extra.hours.fibra || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'fibra', Number(e.target.value))} style={{ width: '65px', padding: '4px 6px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center' }} />
                   </td>
 
                   <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: 'var(--color-primary)' }}>
