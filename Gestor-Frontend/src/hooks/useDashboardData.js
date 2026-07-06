@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { clientService, userService, projectService, materialService, elementService } from '../services/api';
+import { clientService, userService, projectService, elementService, tarifaService } from '../services/api';
 
 export default function useDashboardData(token, currentUser, handleLogout) {
   const [clientes, setClientes] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [proyectos, setProyectos] = useState([]);
   const [elementos, setElementos] = useState([]);
-  const [materiales, setMateriales] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [tarifas, setTarifas] = useState(null);
 
   const [status, setStatusRaw] = useState('Cargando datos...');
   const setStatus = (msg, duration = 4000) => {
@@ -73,21 +73,21 @@ export default function useDashboardData(token, currentUser, handleLogout) {
       setUsuarios([]);
       setProyectos([]);
       setElementos([]);
-      setMateriales([]);
+      setTarifas(null);
       return;
     }
     async function loadDashboard() {
       try {
-        const [clientesRes, usuariosRes, proyectosRes, materialesRes] = await Promise.all([
+        const [clientesRes, usuariosRes, proyectosRes, tarifasRes] = await Promise.all([
           clientService.getAll(),
           userService.getAll(),
           projectService.getAll(),
-          materialService.getAll(),
+          tarifaService.get(),
         ]);
         setClientes(clientesRes.data);
         setUsuarios(usuariosRes.data);
         setProyectos(proyectosRes.data);
-        setMateriales(materialesRes.data);
+        setTarifas(tarifasRes.data);
         setSelectedProjectId(proyectosRes.data[0]?.id ? String(proyectosRes.data[0].id) : '');
         setStatus('Datos sincronizados');
       } catch (error) {
@@ -127,8 +127,6 @@ export default function useDashboardData(token, currentUser, handleLogout) {
     setProyectos,
     elementos,
     setElementos,
-    materiales,
-    setMateriales,
     selectedProjectId,
     setSelectedProjectId,
     status,
@@ -146,6 +144,8 @@ export default function useDashboardData(token, currentUser, handleLogout) {
     selectedProject,
     projectItems,
     total,
-    refreshProjects
+    refreshProjects,
+    tarifas,
+    setTarifas
   };
 }

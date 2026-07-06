@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { parseElementExtraData, serializeElementExtraData } from '../utils/elementHelpers';
 import { exportToExcel as exportToExcelHelper, handleImportExcel as handleImportExcelHelper } from '../utils/excelHelper';
-import { authService, clientService, projectService, elementService, materialService, userService } from '../services/api';
+import { authService, clientService, projectService, elementService, userService } from '../services/api';
 
 export default function useElementActions({
   currentUser,
@@ -15,7 +15,6 @@ export default function useElementActions({
   setClientes,
   setUsuarios,
   setProyectos,
-  setMateriales,
   setStatus,
   money
 }) {
@@ -68,43 +67,7 @@ export default function useElementActions({
     }
   };
 
-  const saveMaterial = async (materialDraft, editingMaterialId) => {
-    if (!isAdmin) {
-      setStatus('Solo los administradores pueden crear o editar materiales.');
-      return;
-    }
 
-    const payload = {
-      ...materialDraft,
-      precio_venta: Number(materialDraft.precio_venta),
-    };
-
-    try {
-      if (editingMaterialId) {
-        const { data } = await materialService.update(editingMaterialId, payload);
-        setMateriales((current) => current.map((material) => (material.id === data.id ? data : material)).sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        setStatus(`Material ${data.nombre} actualizado.`);
-      } else {
-        const { data } = await materialService.create(payload);
-        setMateriales((current) => [...current, data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        setStatus(`Material ${data.nombre} creado.`);
-      }
-    } catch (error) {
-      setStatus(`No se pudo guardar el material: ${error.response?.data?.message || error.message}`);
-    }
-  };
-
-  const deleteMaterial = async (id) => {
-    if (!isAdmin) return;
-    if (!window.confirm('¿Seguro que quieres eliminar este material?')) return;
-    try {
-      await materialService.delete(id);
-      setMateriales((current) => current.filter((m) => m.id !== id));
-      setStatus('Material eliminado.');
-    } catch (error) {
-      setStatus(`No se pudo eliminar el material: ${error.response?.data?.message || error.message}`);
-    }
-  };
 
   const deleteProject = async (id) => {
     if (!isAdmin) {
@@ -231,7 +194,8 @@ export default function useElementActions({
     queueElementUpdate(item.id, async () => {
       try {
         const payload = { ...item, Cantidad: numericQty };
-        await elementService.update(item.id, payload);
+        const { data } = await elementService.update(item.id, payload);
+        setElementos((current) => current.map((e) => e.id === item.id ? data : e));
         await refreshProjects();
       } catch (err) {
         setStatus(`Error al actualizar cantidad: ${err.message}`);
@@ -246,7 +210,8 @@ export default function useElementActions({
     queueElementUpdate(item.id, async () => {
       try {
         const payload = { ...item, Precio: numericPrice };
-        await elementService.update(item.id, payload);
+        const { data } = await elementService.update(item.id, payload);
+        setElementos((current) => current.map((e) => e.id === item.id ? data : e));
         await refreshProjects();
       } catch (err) {
         setStatus(`Error al actualizar precio unitario: ${err.message}`);
@@ -309,8 +274,6 @@ export default function useElementActions({
     handleUserCreate,
     createCliente,
     createProyecto,
-    saveMaterial,
-    deleteMaterial,
     deleteProject,
     deleteElemento,
     handleUploadPhoto,

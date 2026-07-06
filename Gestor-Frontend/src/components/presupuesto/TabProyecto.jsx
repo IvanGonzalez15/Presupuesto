@@ -39,7 +39,6 @@ export default function TabProyecto({
         </div>
       </div>
 
-      {/* Tarjeta Resumen de Costes del Proyecto */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
         <div style={{ background: 'var(--color-surface-container)', padding: '20px', borderRadius: '6px', border: '1px solid var(--color-border)', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Precio Venta Total</span>

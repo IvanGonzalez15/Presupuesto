@@ -13,7 +13,7 @@ const clienteRoutes = require('./routes/cliente.routes');
 const usuarioRoutes = require('./routes/usuario.routes');
 const proyectoRoutes = require('./routes/proyecto.routes');
 const elementoRoutes = require('./routes/elemento.routes');
-const materialRoutes = require('./routes/material.routes');
+const tarifaRoutes = require('./routes/tarifa.routes');
 
 const fs = require('fs');
 const app = express();
@@ -35,7 +35,7 @@ app.use('/api/clientes', clienteRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/proyectos', proyectoRoutes);
 app.use('/api/elementos', elementoRoutes);
-app.use('/api/materiales', materialRoutes);
+app.use('/api/tarifas', tarifaRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'gestor-presupuestos-api' });

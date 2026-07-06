@@ -19,7 +19,7 @@ const normalizeElemento = (body) => {
 
   if (base.Foto && base.Foto.trim().startsWith('{')) {
     const extra = parseElementExtraData(base.Foto);
-    const calculated = calcularPrecioPieza(extra);
+    const calculated = calcularPrecioPieza(extra, base.Cantidad);
     base.medida_metro_cuadrado = calculated.medida_metro_cuadrado;
     base.medida_metro_cubico = calculated.medida_metro_cubico;
     base.Precio = calculated.precio;

@@ -22,19 +22,16 @@ exports.findAll = async (_req, res, next) => {
     const response = proyectos.map(p => {
       const projJson = p.toJSON();
       
-      // Flatten names to match what the frontend expects
       projJson.Cliente_Nombre = projJson.Cliente?.Nombre || '';
       projJson.Responsable_Nombre = projJson.UsuarioResponsable?.nombre || '';
       projJson.Colaboradores_Nombre = (projJson.Colaboradores || []).map(u => u.nombre).join(', ') || 'Ninguno';
       
-      // Calculate Total
       const total = (projJson.Elementos || []).reduce(
         (sum, item) => sum + Number(item.Cantidad || 0) * Number(item.Precio || 0),
         0
       );
       projJson.Total = total;
       
-      // Remove Elementos to keep payload minimal for the list view
       delete projJson.Elementos;
       
       return projJson;
@@ -61,20 +58,17 @@ exports.findOne = async (req, res, next) => {
 
     const projJson = proyecto.toJSON();
     
-    // Flatten names
     projJson.Cliente_Nombre = projJson.Cliente?.Nombre || '';
     projJson.Responsable_Nombre = projJson.UsuarioResponsable?.nombre || '';
     projJson.Colaboradores_Nombre = (projJson.Colaboradores || []).map(u => u.nombre).join(', ') || 'Ninguno';
     projJson.Colaboradores_Ids = (projJson.Colaboradores || []).map(u => u.id);
     
-    // Calculate Total
     const total = (projJson.Elementos || []).reduce(
       (sum, item) => sum + Number(item.Cantidad || 0) * Number(item.Precio || 0),
       0
     );
     projJson.Total = total;
     
-    // Sort elements by id DESC
     if (projJson.Elementos) {
       projJson.Elementos.sort((a, b) => b.id - a.id);
     }

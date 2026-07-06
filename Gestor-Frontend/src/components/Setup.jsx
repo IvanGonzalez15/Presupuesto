@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import CustomDropdown from './CustomDropdown';
+import { tarifaService } from '../services/api';
 
 const today = new Date().toISOString().slice(0, 10);
 const initialClient = { Nombre: '', Persona_contacto: '', Email_contacto: '', Numero_contacto: '' };
@@ -12,41 +14,18 @@ export default function Setup({
   createProyecto,
   onUserCreate,
   statusMessage,
-  setStatus
+  setStatus,
+  onTarifasUpdated
 }) {
   const [clientDraft, setClientDraft] = useState(initialClient);
   const [projectDraft, setProjectDraft] = useState(initialProject);
   const [userDraft, setUserDraft] = useState({ nombre: '', email: '', password: '', rol: 'Admin', proyectoId: '' });
-
-  const [isCollabDropdownOpen, setIsCollabDropdownOpen] = useState(false);
-  const [isRespDropdownOpen, setIsRespDropdownOpen] = useState(false);
-  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
-  const [isRoleDropdownOpen, setIsRoleDropdownOpen] = useState(false);
-
-  const collabRef = useRef(null);
-  const respRef = useRef(null);
-  const clientRef = useRef(null);
-  const roleRef = useRef(null);
+  const [tarifas, setTarifas] = useState(null);
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (collabRef.current && !collabRef.current.contains(event.target)) {
-        setIsCollabDropdownOpen(false);
-      }
-      if (respRef.current && !respRef.current.contains(event.target)) {
-        setIsRespDropdownOpen(false);
-      }
-      if (clientRef.current && !clientRef.current.contains(event.target)) {
-        setIsClientDropdownOpen(false);
-      }
-      if (roleRef.current && !roleRef.current.contains(event.target)) {
-        setIsRoleDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    tarifaService.get()
+      .then(res => setTarifas(res.data))
+      .catch(err => setStatus(`Error al cargar tarifas: ${err.message}`));
   }, []);
 
   const handleClientChange = (e) => {
@@ -57,16 +36,6 @@ export default function Setup({
   const handleProjectChange = (e) => {
     const { name, value } = e.target;
     setProjectDraft((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleCollaboratorCheckboxChange = (userId, checked) => {
-    setProjectDraft((prev) => {
-      const currentList = prev.Colaboradores || [];
-      const updatedList = checked
-        ? [...currentList, userId]
-        : currentList.filter((id) => id !== userId);
-      return { ...prev, Colaboradores: updatedList };
-    });
   };
 
   const handleClientSubmit = (e) => {
@@ -105,6 +74,40 @@ export default function Setup({
     }
   };
 
+  const handleMaterialesChange = (field, val) => {
+    setTarifas(prev => ({
+      ...prev,
+      materiales: {
+        ...prev.materiales,
+        [field]: Number(val)
+      }
+    }));
+  };
+
+  const handleManoObraChange = (field, val) => {
+    setTarifas(prev => ({
+      ...prev,
+      manoObra: {
+        ...prev.manoObra,
+        [field]: Number(val)
+      }
+    }));
+  };
+
+  const handleTarifasSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const { data } = await tarifaService.update(tarifas);
+      setTarifas(data);
+      setStatus('Tarifas y costes actualizados correctamente.');
+      if (onTarifasUpdated) {
+        await onTarifasUpdated();
+      }
+    } catch (err) {
+      setStatus(`Error al guardar tarifas: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="setup-grid">
@@ -121,287 +124,34 @@ export default function Setup({
           <input name="Codigo" onChange={handleProjectChange} placeholder="Nombre del proyecto" required value={projectDraft.Codigo} autoComplete="off" />
           <input name="Fecha_entrega" onChange={handleProjectChange} required type="date" value={projectDraft.Fecha_entrega} autoComplete="off" />
           
-          <div className="collaborators-selector-container" ref={respRef} style={{ position: 'relative' }}>
-            <span className="collaborators-title">Responsable:</span>
-            
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (usuarios.length) setIsRespDropdownOpen(!isRespDropdownOpen);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  if (usuarios.length) setIsRespDropdownOpen(!isRespDropdownOpen);
-                }
-              }}
-              className="multiselect-toggle-btn"
-              style={{
-                width: '100%',
-                height: '42px',
-                textAlign: 'left',
-                padding: '10px 14px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--rounded-lg)',
-                fontSize: '0.9rem',
-                fontWeight: '500',
-                color: projectDraft.Responsable ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                cursor: usuarios.length ? 'pointer' : 'not-allowed',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxSizing: 'border-box',
-                outline: 'none',
-                opacity: usuarios.length ? 1 : 0.6,
-                transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
-              }}
-            >
-              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '90%' }}>
-                {projectDraft.Responsable
-                  ? usuarios.find(u => u.id === Number(projectDraft.Responsable))?.nombre
-                  : 'Responsable'}
-              </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  transform: isRespDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease',
-                  color: 'var(--color-text-secondary)',
-                  flexShrink: 0
-                }}
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </div>
+          <CustomDropdown
+            label="Responsable:"
+            placeholder="Responsable"
+            value={projectDraft.Responsable}
+            onChange={(val) => setProjectDraft(prev => ({ ...prev, Responsable: String(val) }))}
+            options={usuarios.map(u => ({ id: u.id, label: u.nombre }))}
+            disabled={!usuarios.length}
+          />
 
-            {isRespDropdownOpen && (
-              <div
-                className="collaborators-list-box"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  zIndex: 100,
-                  marginTop: '4px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)',
-                  background: 'var(--color-surface-container-high)',
-                  border: '2px solid var(--color-border)'
-                }}
-              >
-                {usuarios.map((user) => {
-                  const isSelected = Number(projectDraft.Responsable) === user.id;
-                  return (
-                    <div
-                      key={user.id}
-                      className={`collaborator-label ${isSelected ? 'selected' : ''}`}
-                      onClick={() => {
-                        setProjectDraft((prev) => ({ ...prev, Responsable: String(user.id) }));
-                        setIsRespDropdownOpen(false);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <span>{user.nombre}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <CustomDropdown
+            label="Colaboradores:"
+            placeholder="Sin colaboradores"
+            isMulti={true}
+            value={projectDraft.Colaboradores}
+            onChange={(ids) => setProjectDraft(prev => ({ ...prev, Colaboradores: ids }))}
+            options={usuarios.map(u => ({ id: u.id, label: u.nombre }))}
+            disabled={!usuarios.length}
+          />
 
-          <div className="collaborators-selector-container" ref={collabRef} style={{ position: 'relative' }}>
-            <span className="collaborators-title">Colaboradores:</span>
-            
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setIsCollabDropdownOpen(!isCollabDropdownOpen)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollabDropdownOpen(!isCollabDropdownOpen); } }}
-              className="multiselect-toggle-btn"
-              style={{
-                width: '100%',
-                height: '42px',
-                textAlign: 'left',
-                padding: '10px 14px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--rounded-lg)',
-                fontSize: '0.9rem',
-                fontWeight: '500',
-                color: 'var(--color-text-primary)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxSizing: 'border-box',
-                outline: 'none',
-                transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
-              }}
-            >
-              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '90%' }}>
-                {projectDraft.Colaboradores && projectDraft.Colaboradores.length > 0
-                  ? projectDraft.Colaboradores.map(id => usuarios.find(u => u.id === id)?.nombre).filter(Boolean).join(', ')
-                  : 'Sin colaboradores'}
-              </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  transform: isCollabDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease',
-                  color: 'var(--color-text-secondary)',
-                  flexShrink: 0
-                }}
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </div>
+          <CustomDropdown
+            label="Cliente:"
+            placeholder="Cliente"
+            value={projectDraft.Id_Cliente}
+            onChange={(val) => setProjectDraft(prev => ({ ...prev, Id_Cliente: String(val) }))}
+            options={clientes.map(c => ({ id: c.id, label: c.Nombre }))}
+            disabled={!clientes.length}
+          />
 
-            {isCollabDropdownOpen && (
-              <div
-                className="collaborators-list-box"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  zIndex: 100,
-                  marginTop: '4px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)',
-                  background: 'var(--color-surface-container-high)',
-                  border: '2px solid var(--color-border)'
-                }}
-              >
-                {usuarios.map((user) => {
-                  const isSelected = (projectDraft.Colaboradores || []).includes(user.id);
-                  return (
-                    <label key={user.id} className={`collaborator-label ${isSelected ? 'selected' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => handleCollaboratorCheckboxChange(user.id, e.target.checked)}
-                        className="collaborator-checkbox"
-                      />
-                      <span>{user.nombre}</span>
-                    </label>
-                  );
-                })}
-                {!usuarios.length && <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>No hay usuarios registrados</span>}
-              </div>
-            )}
-          </div>
-
-          <div className="collaborators-selector-container" ref={clientRef} style={{ position: 'relative' }}>
-            <span className="collaborators-title">Cliente:</span>
-            
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (clientes.length) setIsClientDropdownOpen(!isClientDropdownOpen);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  if (clientes.length) setIsClientDropdownOpen(!isClientDropdownOpen);
-                }
-              }}
-              className="multiselect-toggle-btn"
-              style={{
-                width: '100%',
-                height: '42px',
-                textAlign: 'left',
-                padding: '10px 14px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--rounded-lg)',
-                fontSize: '0.9rem',
-                fontWeight: '500',
-                color: projectDraft.Id_Cliente ? 'var(--color-text-primary)' : 'var(--color-text-secondary)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxSizing: 'border-box',
-                outline: 'none',
-                opacity: clientes.length ? 1 : 0.6,
-                transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
-              }}
-            >
-              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '90%' }}>
-                {projectDraft.Id_Cliente
-                  ? clientes.find(c => c.id === Number(projectDraft.Id_Cliente))?.Nombre
-                  : 'Cliente'}
-              </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  transform: isClientDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease',
-                  color: 'var(--color-text-secondary)',
-                  flexShrink: 0
-                }}
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </div>
-
-            {isClientDropdownOpen && (
-              <div
-                className="collaborators-list-box"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  zIndex: 100,
-                  marginTop: '4px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)',
-                  background: 'var(--color-surface-container-high)',
-                  border: '2px solid var(--color-border)'
-                }}
-              >
-                {clientes.map((client) => {
-                  const isSelected = Number(projectDraft.Id_Cliente) === client.id;
-                  return (
-                    <div
-                      key={client.id}
-                      className={`collaborator-label ${isSelected ? 'selected' : ''}`}
-                      onClick={() => {
-                        setProjectDraft((prev) => ({ ...prev, Id_Cliente: String(client.id) }));
-                        setIsClientDropdownOpen(false);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <span>{client.Nombre}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
           <button disabled={!usuarios.length || !clientes.length} type="submit">Crear proyecto</button>
         </form>
       </div>
@@ -444,96 +194,15 @@ export default function Setup({
               style={{ padding: '8px' }}
             />
           </label>
-          <div className="field" ref={roleRef} style={{ position: 'relative' }}>
-            <span>Rol</span>
-            <div
-              role="button"
-              tabIndex={0}
-              onClick={() => setIsRoleDropdownOpen(!isRoleDropdownOpen)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  setIsRoleDropdownOpen(!isRoleDropdownOpen);
-                }
-              }}
-              className="multiselect-toggle-btn"
-              style={{
-                width: '100%',
-                height: '38px',
-                textAlign: 'left',
-                padding: '8px 12px',
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--rounded-lg)',
-                fontSize: '0.85rem',
-                fontWeight: '500',
-                color: 'var(--color-text-primary)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                boxSizing: 'border-box',
-                outline: 'none',
-                transition: 'border-color 0.15s ease, box-shadow 0.15s ease'
-              }}
-            >
-              <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '90%' }}>
-                {userDraft.rol}
-              </span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  transform: isRoleDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s ease',
-                  color: 'var(--color-text-secondary)',
-                  flexShrink: 0
-                }}
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </div>
+          
+          <CustomDropdown
+            label="Rol"
+            placeholder="Rol"
+            value={userDraft.rol}
+            onChange={(val) => setUserDraft(prev => ({ ...prev, rol: val, proyectoId: val === 'Colaborador' ? prev.proyectoId : '' }))}
+            options={['Admin', 'Colaborador', 'Viewer'].map(r => ({ id: r, label: r }))}
+          />
 
-            {isRoleDropdownOpen && (
-              <div
-                className="collaborators-list-box"
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  zIndex: 100,
-                  marginTop: '4px',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -4px rgba(0, 0, 0, 0.3)',
-                  background: 'var(--color-surface-container-high)',
-                  border: '2px solid var(--color-border)'
-                }}
-              >
-                {['Admin', 'Colaborador', 'Viewer'].map((r) => {
-                  const isSelected = userDraft.rol === r;
-                  return (
-                    <div
-                      key={r}
-                      className={`collaborator-label ${isSelected ? 'selected' : ''}`}
-                      onClick={() => {
-                        setUserDraft((prev) => ({ ...prev, rol: r, proyectoId: r === 'Colaborador' ? prev.proyectoId : '' }));
-                        setIsRoleDropdownOpen(false);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      <span>{r}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
           {userDraft.rol === 'Colaborador' && (
             <label className="field">
               <span>Proyecto Asignado</span>
@@ -557,6 +226,107 @@ export default function Setup({
           </button>
         </form>
       </div>
+
+      {tarifas && (
+        <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
+          <div className="section-title"><span>04</span><h2>Tarifas y Costes Base</h2></div>
+          <form onSubmit={handleTarifasSubmit} autoComplete="off">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>Coste Materiales</h3>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Porex (€/m³)</span>
+                    <input type="number" step="0.01" value={tarifas.materiales.porex} onChange={(e) => handleMaterialesChange('porex', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Line-X (€/m²)</span>
+                    <input type="number" step="0.01" value={tarifas.materiales.linex} onChange={(e) => handleMaterialesChange('linex', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Fibra (€/m²)</span>
+                    <input type="number" step="0.01" value={tarifas.materiales.fibra} onChange={(e) => handleMaterialesChange('fibra', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Pintura (€/m²)</span>
+                    <input type="number" step="0.01" value={tarifas.materiales.pintura} onChange={(e) => handleMaterialesChange('pintura', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mortero (€/m²)</span>
+                    <input type="number" step="0.01" value={tarifas.materiales.mortero} onChange={(e) => handleMaterialesChange('mortero', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: '1rem', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>Coste de Mano de Obra</h3>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Oficina (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.oficina} onChange={(e) => handleManoObraChange('oficina', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Programación (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.programacion} onChange={(e) => handleManoObraChange('programacion', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mecanizado (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.mecanizado} onChange={(e) => handleManoObraChange('mecanizado', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Pegar/Lijar (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.prepost} onChange={(e) => handleManoObraChange('prepost', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Esculpir (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.esculpir} onChange={(e) => handleManoObraChange('esculpir', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mano obra Line-X (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.linex} onChange={(e) => handleManoObraChange('linex', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mano obra Fibra (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.fibra} onChange={(e) => handleManoObraChange('fibra', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mano obra Mortero (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.mortero} onChange={(e) => handleManoObraChange('mortero', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mano obra Pintura (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.pintura} onChange={(e) => handleManoObraChange('pintura', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Estructura (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.estructura} onChange={(e) => handleManoObraChange('estructura', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Entrega (€/h)</span>
+                    <input type="number" step="0.01" value={tarifas.manoObra.entrega} onChange={(e) => handleManoObraChange('entrega', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <h3 style={{ fontSize: '1rem', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>Margen de Venta</h3>
+                <div style={{ display: 'grid', gap: '10px' }}>
+                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Coeficiente (Z$1)</span>
+                    <input type="number" step="0.01" min="0.01" max="1" value={tarifas.coeficientePVP} onChange={(e) => setTarifas(prev => ({ ...prev, coeficientePVP: Number(e.target.value) }))} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: '1.4', margin: '4px 0 0 0' }}>
+                    Por defecto es 0.5. Al dividir el coste entre este coeficiente se calcula el PVP (ej. dividir por 0.5 multiplica el coste por 2).
+                  </p>
+                </div>
+              </div>
+            </div>
+            <button type="submit" style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold' }}>
+              Guardar Tarifas y Costes
+            </button>
+          </form>
+        </div>
+      )}
     </section>
   );
 }

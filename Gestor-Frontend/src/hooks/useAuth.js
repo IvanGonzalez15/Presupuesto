@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { authService } from '../services/api';
 
 const decodeJWT = (token) => {
@@ -38,7 +38,6 @@ export default function useAuth() {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
   };
 
-  // Clear expired token on load so the user sees login rather than a broken state
   const [token, setToken] = useState(() => {
     const stored = localStorage.getItem('lx_token') || '';
     if (stored && isTokenExpired(stored)) {

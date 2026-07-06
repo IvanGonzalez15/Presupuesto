@@ -1,21 +1,35 @@
-// Gestor-Backend/helpers/calc.helper.js
+const fs = require('fs');
+const path = require('path');
 
-const TARIFAS = {
-  materiales: {
-    porex: 90.0,
-    linex: 10.0,
-    fibra: 12.0,
-    pintura: 25.0,
-    mortero: 190.0
-  },
-  manoObra: {
-    oficina: 25.0,
-    programacion: 35.0,
-    mecanizado: 15.0,
-    prepost: 25.0,
-    esculpir: 25.0,
-    linex: 25.0,
-    fibra: 25.0
+const getTarifas = () => {
+  try {
+    const filePath = path.join(__dirname, '..', 'data', 'tarifas.json');
+    const rawData = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(rawData);
+  } catch (error) {
+    return {
+      materiales: {
+        porex: 90.0,
+        linex: 10.0,
+        fibra: 12.0,
+        pintura: 25.0,
+        mortero: 190.0
+      },
+      manoObra: {
+        oficina: 25.0,
+        programacion: 35.0,
+        mecanizado: 15.0,
+        prepost: 25.0,
+        esculpir: 25.0,
+        linex: 25.0,
+        fibra: 25.0,
+        mortero: 25.0,
+        pintura: 25.0,
+        estructura: 25.0,
+        entrega: 25.0
+      },
+      coeficientePVP: 0.5
+    };
   }
 };
 
@@ -33,7 +47,7 @@ const parseElementExtraData = (foto) => {
     ancho: 0,
     alto: 0,
     materials: { porex: false, linex: false, fibra: false, pintura: false, mortero: false },
-    hours: { oficina: 0, programacion: 0, mecanizado: 0, prepost: 0, esculpir: 0, linex: 0, fibra: 0 }
+    hours: { oficina: 0, programacion: 0, mecanizado: 0, prepost: 0, esculpir: 0, linex: 0, fibra: 0, mortero: 0, pintura: 0, estructura: 0, entrega: 0 }
   };
 };
 
@@ -47,7 +61,9 @@ const calcularMedidas = (largo, ancho, alto) => {
   return { m2, m3 };
 };
 
-const calcularPrecioPieza = (extraData) => {
+const calcularPrecioPieza = (extraData, cantidad = 1) => {
+  const TARIFAS = getTarifas();
+  const qty = Math.max(Number(cantidad || 1), 1);
   const largo = Number(extraData.largo || 0);
   const ancho = Number(extraData.ancho || 0);
   const alto = Number(extraData.alto || 0);
@@ -56,28 +72,35 @@ const calcularPrecioPieza = (extraData) => {
   const materials = extraData.materials || {};
   const hours = extraData.hours || {};
 
-  // Material costs
-  const costPorex = materials.porex ? m3 * TARIFAS.materiales.porex : 0;
-  const costLineX = materials.linex ? m2 * TARIFAS.materiales.linex : 0;
-  const costFibra = materials.fibra ? m2 * TARIFAS.materiales.fibra : 0;
-  const costPintura = materials.pintura ? m2 * TARIFAS.materiales.pintura : 0;
-  const costMortero = materials.mortero ? m2 * TARIFAS.materiales.mortero : 0;
+  const costPorex = materials.porex ? m3 * TARIFAS.materiales.porex * qty : 0;
+  const costLineX = materials.linex ? m2 * TARIFAS.materiales.linex * qty : 0;
+  const costFibra = materials.fibra ? m2 * TARIFAS.materiales.fibra * qty : 0;
+  const costPintura = materials.pintura ? m2 * TARIFAS.materiales.pintura * qty : 0;
+  const costMortero = materials.mortero ? m2 * TARIFAS.materiales.mortero * qty : 0;
 
-  // Labor costs
   const costOficina = Number(hours.oficina || 0) * TARIFAS.manoObra.oficina;
   const costProgramacion = Number(hours.programacion || 0) * TARIFAS.manoObra.programacion;
-  const costMecanizado = Number(hours.mecanizado || 0) * TARIFAS.manoObra.mecanizado;
-  const costPrepost = Number(hours.prepost || 0) * TARIFAS.manoObra.prepost;
-  const costEsculpir = Number(hours.esculpir || 0) * TARIFAS.manoObra.esculpir;
-  const costLineXLabor = materials.linex ? Number(hours.linex || 0) * TARIFAS.manoObra.linex : 0;
-  const costFibraLabor = materials.fibra ? Number(hours.fibra || 0) * TARIFAS.manoObra.fibra : 0;
+  const costMecanizado = Number(hours.mecanizado || 0) * TARIFAS.manoObra.mecanizado * qty;
+  const costPrepost = Number(hours.prepost || 0) * TARIFAS.manoObra.prepost * qty;
+  const costEsculpir = Number(hours.esculpir || 0) * TARIFAS.manoObra.esculpir * qty;
+  const costLineXLabor = materials.linex ? Number(hours.linex || 0) * TARIFAS.manoObra.linex * qty : 0;
+  const costFibraLabor = materials.fibra ? Number(hours.fibra || 0) * TARIFAS.manoObra.fibra * qty : 0;
+  const costMorteroLabor = materials.mortero ? Number(hours.mortero || 0) * (TARIFAS.manoObra.mortero || 25) * qty : 0;
+  const costPinturaLabor = materials.pintura ? Number(hours.pintura || 0) * (TARIFAS.manoObra.pintura || 25) * qty : 0;
+  const costEstructura = Number(hours.estructura || 0) * (TARIFAS.manoObra.estructura || 25) * qty;
+  const costEntrega = Number(hours.entrega || 0) * (TARIFAS.manoObra.entrega || 25) * qty;
 
-  const newPrice = costPorex + costLineX + costFibra + costPintura + costMortero +
-                   costOficina + costProgramacion + costMecanizado + costPrepost + costEsculpir +
-                   costLineXLabor + costFibraLabor;
+  const totalCostLote = costPorex + costLineX + costFibra + costPintura + costMortero +
+                        costOficina + costProgramacion +
+                        costMecanizado + costPrepost + costEsculpir +
+                        costLineXLabor + costFibraLabor + costMorteroLabor + costPinturaLabor +
+                        costEstructura + costEntrega;
+
+  const pvpTotal = totalCostLote / TARIFAS.coeficientePVP;
+  const unitPrice = pvpTotal / qty;
 
   return {
-    precio: newPrice,
+    precio: unitPrice,
     medida_metro_cuadrado: m2,
     medida_metro_cubico: m3
   };
@@ -86,5 +109,6 @@ const calcularPrecioPieza = (extraData) => {
 module.exports = {
   parseElementExtraData,
   calcularMedidas,
-  calcularPrecioPieza
+  calcularPrecioPieza,
+  getTarifas
 };

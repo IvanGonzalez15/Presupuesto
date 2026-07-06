@@ -42,8 +42,7 @@ export const handleImportExcel = (event, selectedProjectId, currentUser, refresh
       const worksheet = workbook.Sheets[sheetName];
       const rawData = XLSX.utils.sheet_to_json(worksheet);
 
-      let count = 0;
-      for (const row of rawData) {
+      const promises = rawData.map(async (row) => {
         const nombre = row['Concepto'] || row['Concepto/Nombre'] || row['Nombre'] || row['nombre'] || row['Referencia'];
         const cantidad = Number(row['Cantidad'] || row['cantidad'] || 1);
         const unidad = row['Unidad'] || row['unidad'] || 'ud';
@@ -64,9 +63,13 @@ export const handleImportExcel = (event, selectedProjectId, currentUser, refresh
             Id_usuario_creador: currentUser?.id || 1,
           };
           await elementService.create(payload);
-          count++;
+          return true;
         }
-      }
+        return false;
+      });
+
+      const results = await Promise.all(promises);
+      const count = results.filter(Boolean).length;
       
       await refreshProjects();
       const elementsRes = await elementService.getAll(selectedProjectId);

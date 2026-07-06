@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { exportToPDF } from '../utils/pdfHelper';
 import api from '../services/api';
 
-// Modular child components
 import ProjectSidebar from './presupuesto/ProjectSidebar';
 import TabProyecto from './presupuesto/TabProyecto';
 import TabListadoElementos from './presupuesto/TabListadoElementos';
@@ -37,7 +36,8 @@ export default function Presupuestos({
   setSelectedClientIdFilter,
   handleUploadPhoto,
   updateElementPhoto,
-  setStatus
+  setStatus,
+  tarifas
 }) {
   const initialItem = { Nombre: '', Foto: '', Cantidad: 1, Unidad_de_medida: 'ud', Precio: 0, medida_metro_cuadrado: 0, medida_metro_cubico: 0 };
   const [itemDraft, setItemDraft] = useState(initialItem);
@@ -75,7 +75,6 @@ export default function Presupuestos({
 
   return (
     <section className="workspace">
-      {/* Sidebar List of Projects */}
       <ProjectSidebar
         proyectos={proyectos}
         selectedProjectId={selectedProjectId}
@@ -89,7 +88,6 @@ export default function Presupuestos({
       />
 
       <section className="panel budget-builder" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Header and Action Buttons */}
         <div className="budget-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div className="section-title" style={{ margin: 0, padding: 0, borderBottom: 0 }}>
             <span>05</span>
@@ -123,7 +121,6 @@ export default function Presupuestos({
 
         {selectedProject ? (
           <>
-            {/* Selector de Pestañas Estilo Excel */}
             <div className="excel-sheets-tabs" style={{ display: 'flex', borderBottom: '2px solid var(--color-sheet-border)', background: 'var(--color-sheet-header-bg)', padding: '4px 4px 0 4px', borderRadius: '6px 6px 0 0' }}>
               {[
                 { id: '00-proyecto', label: '00-PROYECTO' },
@@ -156,7 +153,6 @@ export default function Presupuestos({
               ))}
             </div>
 
-            {/* Renderizado de Pestañas Dinámico */}
             {subTab === '00-proyecto' && (
               <TabProyecto
                 selectedProject={selectedProject}
@@ -197,6 +193,7 @@ export default function Presupuestos({
                 projectItems={projectItems}
                 updateElementExtraValue={updateElementExtraValue}
                 money={money}
+                tarifas={tarifas}
               />
             )}
 

@@ -7,7 +7,6 @@ const api = axios.create({
   baseURL: API_URL,
 });
 
-// Request interceptor to automatically attach authorization token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('lx_token');
@@ -19,7 +18,6 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle expired or invalid tokens globally
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -58,15 +56,13 @@ export const elementService = {
   uploadPhoto: (fileData, filename) => api.post('/elementos/upload', { fileData, filename }),
 };
 
-export const materialService = {
-  getAll: () => api.get('/materiales'),
-  create: (materialData) => api.post('/materiales', materialData),
-  update: (id, materialData) => api.put(`/materiales/${id}`, materialData),
-  delete: (id) => api.delete(`/materiales/${id}`),
-};
-
 export const userService = {
   getAll: () => api.get('/usuarios'),
+};
+
+export const tarifaService = {
+  get: () => api.get('/tarifas'),
+  update: (tarifasData) => api.put('/tarifas', tarifasData),
 };
 
 export default api;

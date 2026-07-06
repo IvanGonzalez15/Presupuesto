@@ -77,9 +77,6 @@ export default function Sidebar({
         <button className={activeTab === 'presupuestos' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('presupuestos')} type="button">
           Presupuestos
         </button>
-        <button className={activeTab === 'materiales' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('materiales')} type="button">
-          Base de Materiales
-        </button>
         {isAdmin && (
           <button className={activeTab === 'registro' ? 'nav-item active' : 'nav-item'} onClick={() => setActiveTab('registro')} type="button">
             Clientes y Setup

@@ -4,8 +4,7 @@ export default function DashboardHeader({
   isAdmin,
   usuarios = [],
   clientes = [],
-  proyectos = [],
-  materiales = []
+  proyectos = []
 }) {
   return (
     <header className="hero-panel">
@@ -19,7 +18,6 @@ export default function DashboardHeader({
           <div><strong>{usuarios.length}</strong><span>usuarios</span></div>
           <div><strong>{clientes.length}</strong><span>clientes</span></div>
           <div><strong>{proyectos.length}</strong><span>proyectos</span></div>
-          <div><strong>{materiales.length}</strong><span>materiales</span></div>
         </div>
       )}
     </header>

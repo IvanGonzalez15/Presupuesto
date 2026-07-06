@@ -2,7 +2,6 @@ import './App.css';
 
 import Login from './components/Login';
 import Setup from './components/Setup';
-import Materiales from './components/Materiales';
 import Presupuestos from './components/Presupuestos';
 import Sidebar from './components/Sidebar';
 import DashboardHeader from './components/DashboardHeader';
@@ -10,6 +9,7 @@ import useAuth from './hooks/useAuth';
 import useDashboardData from './hooks/useDashboardData';
 import useElementActions from './hooks/useElementActions';
 import { parseElementExtraData } from './utils/elementHelpers';
+import { elementService, tarifaService } from './services/api';
 
 const money = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
@@ -33,8 +33,6 @@ function App() {
     setProyectos,
     elementos,
     setElementos,
-    materiales,
-    setMateriales,
     selectedProjectId,
     setSelectedProjectId,
     status,
@@ -52,7 +50,9 @@ function App() {
     selectedProject,
     projectItems,
     total,
-    refreshProjects
+    refreshProjects,
+    tarifas,
+    setTarifas
   } = useDashboardData(
     token,
     currentUser,
@@ -64,8 +64,6 @@ function App() {
     handleUserCreate,
     createCliente,
     createProyecto,
-    saveMaterial,
-    deleteMaterial,
     deleteProject,
     deleteElemento,
     handleUploadPhoto,
@@ -90,7 +88,6 @@ function App() {
     setClientes,
     setUsuarios,
     setProyectos,
-    setMateriales,
     setStatus,
     money
   });
@@ -102,6 +99,20 @@ function App() {
   if (!token) {
     return <Login onLogin={(nombre, password) => handleLogin(nombre, password, setStatus)} error={loginError} />;
   }
+
+  const handleTarifasUpdated = async () => {
+    try {
+      const { data: newRates } = await tarifaService.get();
+      setTarifas(newRates);
+      if (selectedProjectId) {
+        const { data: newElements } = await elementService.getAll(selectedProjectId);
+        setElementos(newElements);
+      }
+      await refreshProjects();
+    } catch (error) {
+      setStatus(`Error al refrescar tras actualizar tarifas: ${error.message}`);
+    }
+  };
 
   return (
     <div className="dashboard-layout">
@@ -121,7 +132,6 @@ function App() {
           usuarios={usuarios}
           clientes={clientes}
           proyectos={proyectos}
-          materiales={materiales}
         />
 
         {activeTab === 'registro' && isAdmin && (
@@ -134,18 +144,11 @@ function App() {
             onUserCreate={handleUserCreate}
             statusMessage={status}
             setStatus={setStatus}
+            onTarifasUpdated={handleTarifasUpdated}
           />
         )}
 
-        {activeTab === 'materiales' && (
-          <Materiales
-            materiales={materiales}
-            isAdmin={isAdmin}
-            money={money}
-            saveMaterial={saveMaterial}
-            deleteMaterial={deleteMaterial}
-          />
-        )}
+
 
         {activeTab === 'presupuestos' && (
           <Presupuestos
@@ -178,6 +181,7 @@ function App() {
             handleUploadPhoto={handleUploadPhoto}
             updateElementPhoto={updateElementPhoto}
             setStatus={setStatus}
+            tarifas={tarifas}
           />
         )}
       </main>

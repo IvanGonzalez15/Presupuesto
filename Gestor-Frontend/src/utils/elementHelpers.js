@@ -14,7 +14,7 @@ export const parseElementExtraData = (item) => {
     ancho: 0,
     alto: 0,
     materials: { porex: false, linex: false, fibra: false, pintura: false, mortero: false },
-    hours: { oficina: 0, programacion: 0, mecanizado: 0, prepost: 0, esculpir: 0, linex: 0, fibra: 0 }
+    hours: { oficina: 0, programacion: 0, mecanizado: 0, prepost: 0, esculpir: 0, linex: 0, fibra: 0, mortero: 0, pintura: 0, estructura: 0, entrega: 0 }
   };
 };
 
