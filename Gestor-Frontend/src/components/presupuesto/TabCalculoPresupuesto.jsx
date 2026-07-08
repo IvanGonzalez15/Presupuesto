@@ -6,38 +6,33 @@ export default function TabCalculoPresupuesto({
   projectItems,
   updateElementExtraValue,
   money,
-  tarifas
+  tarifas,
+  tarifasMateriales = []
 }) {
-  const porexRate = tarifas?.materiales?.porex ?? 90.00;
-  const linexRate = tarifas?.materiales?.linex ?? 10.00;
-  const fibraRate = tarifas?.materiales?.fibra ?? 12.00;
-  const pinturaRate = tarifas?.materiales?.pintura ?? 25.00;
-  const morteroRate = tarifas?.materiales?.mortero ?? 190.00;
-
   const inputStyle = { width: '55px', padding: '4px 4px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center', fontSize: '0.8rem' };
   const cellStyle = { padding: '4px', textAlign: 'center' };
   const thStyle = { padding: '6px', fontSize: '0.7rem', textAlign: 'center' };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Dynamic database material tariffs view */}
       <div className="excel-calc-card" style={{ background: 'var(--color-surface-container-low)', padding: '16px', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
-        <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>TARIFAS BASE DE COSTE</h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', fontSize: '0.8rem' }}>
-          <div style={{ background: 'var(--color-surface)', padding: '8px 12px', border: '1px solid var(--color-border-light)', borderRadius: '4px' }}>
-            <strong>Porex:</strong> {money.format(porexRate)}/m³
-          </div>
-          <div style={{ background: 'var(--color-surface)', padding: '8px 12px', border: '1px solid var(--color-border-light)', borderRadius: '4px' }}>
-            <strong>Line-X:</strong> {money.format(linexRate)}/m²
-          </div>
-          <div style={{ background: 'var(--color-surface)', padding: '8px 12px', border: '1px solid var(--color-border-light)', borderRadius: '4px' }}>
-            <strong>Fibra:</strong> {money.format(fibraRate)}/m²
-          </div>
-          <div style={{ background: 'var(--color-surface)', padding: '8px 12px', border: '1px solid var(--color-border-light)', borderRadius: '4px' }}>
-            <strong>Pintura:</strong> {money.format(pinturaRate)}/m²
-          </div>
-          <div style={{ background: 'var(--color-surface)', padding: '8px 12px', border: '1px solid var(--color-border-light)', borderRadius: '4px' }}>
-            <strong>Mortero:</strong> {money.format(morteroRate)}/m²
-          </div>
+        <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>TARIFAS DE MATERIALES EN BASE DE DATOS</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', fontSize: '0.8rem' }}>
+          {['porex', 'linex', 'fibra', 'pintura', 'mortero'].map(cat => {
+            const list = tarifasMateriales.filter(m => m.categoria === cat);
+            return (
+              <div key={cat} style={{ background: 'var(--color-surface)', padding: '8px 12px', border: '1px solid var(--color-border-light)', borderRadius: '4px' }}>
+                <strong style={{ textTransform: 'uppercase', color: 'var(--color-primary)' }}>{cat}:</strong>
+                <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px', listStyleType: 'disc' }}>
+                  {list.map(m => (
+                    <li key={m.id}>{m.nombre}: {money.format(m.precio)}/{m.unidad}</li>
+                  ))}
+                  {list.length === 0 && <li>Ninguno registrado</li>}
+                </ul>
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -48,7 +43,7 @@ export default function TabCalculoPresupuesto({
               <th rowSpan={2} style={{ padding: '8px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', width: '60px' }}>FOTO</th>
               <th rowSpan={2} style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)' }}>PIEZA</th>
               <th rowSpan={2} style={{ padding: '8px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)' }}>UDS</th>
-              <th colSpan={5} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MATERIALES</th>
+              <th colSpan={5} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MATERIALES (VARIEDAD Y COSTE)</th>
               <th colSpan={11} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MANO DE OBRA / PROCESOS (horas)</th>
               <th rowSpan={2} style={{ padding: '8px', textAlign: 'right', fontSize: '0.75rem' }}>PRECIO CALC.</th>
             </tr>
@@ -86,22 +81,97 @@ export default function TabCalculoPresupuesto({
                   <td style={{ padding: '8px', fontWeight: 'bold', borderRight: '1px solid var(--color-border-light)' }}>{item.Nombre}</td>
                   <td style={{ padding: '8px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>{item.Cantidad}</td>
                   
+                  {/* Porex Dropdown Select */}
                   <td style={cellStyle}>
-                    <input type="checkbox" checked={extra.materials.porex || false} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'materials', 'porex', e.target.checked)} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="checkbox" checked={extra.materials.linex || false} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'materials', 'linex', e.target.checked)} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="checkbox" checked={extra.materials.fibra || false} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'materials', 'fibra', e.target.checked)} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="checkbox" checked={extra.materials.pintura || false} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'materials', 'pintura', e.target.checked)} />
-                  </td>
-                  <td style={{ ...cellStyle, borderRight: '1px solid var(--color-border-light)' }}>
-                    <input type="checkbox" checked={extra.materials.mortero || false} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'materials', 'mortero', e.target.checked)} />
+                    <select
+                      value={extra.materials.porexId || ''}
+                      disabled={isViewer}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        updateElementExtraValue(item, 'materials', 'porexId', val);
+                      }}
+                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+                    >
+                      <option value="">Ninguno</option>
+                      {tarifasMateriales.filter(m => m.categoria === 'porex').map(m => (
+                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                      ))}
+                    </select>
                   </td>
 
+                  {/* Line-X Dropdown Select */}
+                  <td style={cellStyle}>
+                    <select
+                      value={extra.materials.linexId || ''}
+                      disabled={isViewer}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        updateElementExtraValue(item, 'materials', 'linexId', val);
+                      }}
+                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+                    >
+                      <option value="">Ninguno</option>
+                      {tarifasMateriales.filter(m => m.categoria === 'linex').map(m => (
+                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                      ))}
+                    </select>
+                  </td>
+
+                  {/* Fibra Dropdown Select */}
+                  <td style={cellStyle}>
+                    <select
+                      value={extra.materials.fibraId || ''}
+                      disabled={isViewer}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        updateElementExtraValue(item, 'materials', 'fibraId', val);
+                      }}
+                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+                    >
+                      <option value="">Ninguno</option>
+                      {tarifasMateriales.filter(m => m.categoria === 'fibra').map(m => (
+                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                      ))}
+                    </select>
+                  </td>
+
+                  {/* Pintura Dropdown Select */}
+                  <td style={cellStyle}>
+                    <select
+                      value={extra.materials.pinturaId || ''}
+                      disabled={isViewer}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        updateElementExtraValue(item, 'materials', 'pinturaId', val);
+                      }}
+                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+                    >
+                      <option value="">Ninguno</option>
+                      {tarifasMateriales.filter(m => m.categoria === 'pintura').map(m => (
+                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                      ))}
+                    </select>
+                  </td>
+
+                  {/* Mortero Dropdown Select */}
+                  <td style={{ ...cellStyle, borderRight: '1px solid var(--color-border-light)' }}>
+                    <select
+                      value={extra.materials.morteroId || ''}
+                      disabled={isViewer}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        updateElementExtraValue(item, 'materials', 'morteroId', val);
+                      }}
+                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
+                    >
+                      <option value="">Ninguno</option>
+                      {tarifasMateriales.filter(m => m.categoria === 'mortero').map(m => (
+                        <option key={m.id} value={m.id}>{m.nombre}</option>
+                      ))}
+                    </select>
+                  </td>
+
+                  {/* Hours inputs */}
                   <td style={cellStyle}>
                     <input type="number" min="0" step="0.5" value={extra.hours.oficina || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'oficina', Number(e.target.value))} style={inputStyle} />
                   </td>

@@ -65,4 +65,11 @@ export const tarifaService = {
   update: (tarifasData) => api.put('/tarifas', tarifasData),
 };
 
+export const tarifaMaterialService = {
+  getAll: () => api.get('/tarifas-materiales'),
+  create: (data) => api.post('/tarifas-materiales', data),
+  update: (id, data) => api.put(`/tarifas-materiales/${id}`, data),
+  delete: (id) => api.delete(`/tarifas-materiales/${id}`),
+};
+
 export default api;

@@ -14,6 +14,7 @@ const usuarioRoutes = require('./routes/usuario.routes');
 const proyectoRoutes = require('./routes/proyecto.routes');
 const elementoRoutes = require('./routes/elemento.routes');
 const tarifaRoutes = require('./routes/tarifa.routes');
+const tarifaMaterialRoutes = require('./routes/tarifaMaterial.routes');
 
 const fs = require('fs');
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/proyectos', proyectoRoutes);
 app.use('/api/elementos', elementoRoutes);
 app.use('/api/tarifas', tarifaRoutes);
+app.use('/api/tarifas-materiales', tarifaMaterialRoutes);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'gestor-presupuestos-api' });
@@ -73,8 +75,28 @@ const startServer = async () => {
   try {
     await db.sequelize.authenticate();
     console.log('Conexión con la base de datos establecida correctamente.');
-    await db.sequelize.sync({ alter: true });
+    await db.sequelize.sync();
     console.log('Base de datos sincronizada con Sequelize de forma segura.');
+    
+    // Sembrar materiales iniciales si la tabla está vacía
+    const seedMateriales = async () => {
+      try {
+        const count = await db.TarifaMaterial.count();
+        if (count === 0) {
+          await db.TarifaMaterial.bulkCreate([
+            { categoria: 'porex', nombre: 'Porex Estándar', precio: 90.00, unidad: 'm3' },
+            { categoria: 'linex', nombre: 'Line-X Estándar', precio: 10.00, unidad: 'm2' },
+            { categoria: 'fibra', nombre: 'Fibra Estándar', precio: 12.00, unidad: 'm2' },
+            { categoria: 'pintura', nombre: 'Pintura Estándar', precio: 25.00, unidad: 'm2' },
+            { categoria: 'mortero', nombre: 'Mortero Estándar', precio: 190.00, unidad: 'm2' }
+          ]);
+          console.log('Tarifas de materiales iniciales insertadas.');
+        }
+      } catch (err) {
+        console.error('Error al semillar materiales:', err.message);
+      }
+    };
+    await seedMateriales();
   } catch (error) {
     console.error('Error al inicializar la base de datos:', error.message);
   }

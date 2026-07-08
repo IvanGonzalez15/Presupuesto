@@ -14,20 +14,13 @@ exports.get = (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { materiales, manoObra, coeficientePVP } = req.body;
-    if (!materiales || !manoObra || coeficientePVP === undefined) {
-      return res.status(400).json({ message: 'Todos los campos (materiales, manoObra, coeficientePVP) son obligatorios.' });
+    const { manoObra, coeficientePVP } = req.body;
+    if (!manoObra || coeficientePVP === undefined) {
+      return res.status(400).json({ message: 'Todos los campos (manoObra, coeficientePVP) son obligatorios.' });
     }
 
     const filePath = path.join(__dirname, '..', 'data', 'tarifas.json');
     const newTarifas = {
-      materiales: {
-        porex: Number(materiales.porex || 0),
-        linex: Number(materiales.linex || 0),
-        fibra: Number(materiales.fibra || 0),
-        pintura: Number(materiales.pintura || 0),
-        mortero: Number(materiales.mortero || 0)
-      },
       manoObra: {
         oficina: Number(manoObra.oficina || 0),
         programacion: Number(manoObra.programacion || 0),
@@ -50,7 +43,7 @@ exports.update = async (req, res, next) => {
     const updates = elementos.map(async (el) => {
       if (el.Foto && el.Foto.trim().startsWith('{')) {
         const extra = parseElementExtraData(el.Foto);
-        const calculated = calcularPrecioPieza(extra, el.Cantidad);
+        const calculated = await calcularPrecioPieza(extra, el.Cantidad);
         
         if (el.Precio !== calculated.precio || 
             el.medida_metro_cuadrado !== calculated.medida_metro_cuadrado || 

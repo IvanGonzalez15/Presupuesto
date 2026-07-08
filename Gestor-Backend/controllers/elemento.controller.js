@@ -3,7 +3,7 @@ const path = require('path');
 const db = require('../models');
 const { parseElementExtraData, calcularPrecioPieza } = require('../helpers/calc.helper');
 
-const normalizeElemento = (body) => {
+const normalizeElemento = async (body) => {
   const base = {
     Nombre: body.Nombre,
     Foto: body.Foto || null,
@@ -19,7 +19,7 @@ const normalizeElemento = (body) => {
 
   if (base.Foto && base.Foto.trim().startsWith('{')) {
     const extra = parseElementExtraData(base.Foto);
-    const calculated = calcularPrecioPieza(extra, base.Cantidad);
+    const calculated = await calcularPrecioPieza(extra, base.Cantidad);
     base.medida_metro_cuadrado = calculated.medida_metro_cuadrado;
     base.medida_metro_cubico = calculated.medida_metro_cubico;
     base.Precio = calculated.precio;
@@ -71,7 +71,7 @@ const createReferencia = async (projectId) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const data = normalizeElemento(req.body);
+    const data = await normalizeElemento(req.body);
     if (!data.Nombre || !data.Id_usuario_creador || !data.Id_proyecto) {
       return res.status(400).json({ message: 'Nombre, Id_usuario_creador e Id_proyecto son obligatorios' });
     }
@@ -89,7 +89,7 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const data = normalizeElemento(req.body);
+    const data = await normalizeElemento(req.body);
     const [affectedRows] = await db.Elemento.update(data, {
       where: { id: req.params.id }
     });

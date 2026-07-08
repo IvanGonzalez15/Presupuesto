@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import CustomDropdown from './CustomDropdown';
-import { tarifaService } from '../services/api';
+import { tarifaService, tarifaMaterialService } from '../services/api';
 
 const today = new Date().toISOString().slice(0, 10);
 const initialClient = { Nombre: '', Persona_contacto: '', Email_contacto: '', Numero_contacto: '' };
 const initialProject = { Codigo: '', Fecha_entrega: today, Colaboradores: [], Responsable: '', Id_Cliente: '' };
+const money = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
 export default function Setup({
   clientes,
@@ -15,12 +16,19 @@ export default function Setup({
   onUserCreate,
   statusMessage,
   setStatus,
-  onTarifasUpdated
+  onTarifasUpdated,
+  tarifasMateriales = [],
+  setTarifasMateriales
 }) {
   const [clientDraft, setClientDraft] = useState(initialClient);
   const [projectDraft, setProjectDraft] = useState(initialProject);
   const [userDraft, setUserDraft] = useState({ nombre: '', email: '', password: '', rol: 'Admin', proyectoId: '' });
   const [tarifas, setTarifas] = useState(null);
+
+  // Material CRUD states
+  const [newMaterial, setNewMaterial] = useState({ categoria: 'porex', nombre: '', precio: '', unidad: 'm3' });
+  const [editingMaterialId, setEditingMaterialId] = useState(null);
+  const [editMaterialDraft, setEditMaterialDraft] = useState({ categoria: '', nombre: '', precio: '', unidad: '' });
 
   useEffect(() => {
     tarifaService.get()
@@ -74,16 +82,6 @@ export default function Setup({
     }
   };
 
-  const handleMaterialesChange = (field, val) => {
-    setTarifas(prev => ({
-      ...prev,
-      materiales: {
-        ...prev.materiales,
-        [field]: Number(val)
-      }
-    }));
-  };
-
   const handleManoObraChange = (field, val) => {
     setTarifas(prev => ({
       ...prev,
@@ -105,6 +103,55 @@ export default function Setup({
       }
     } catch (err) {
       setStatus(`Error al guardar tarifas: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  // Material CRUD handlers
+  const handleCreateMaterial = async (e) => {
+    e.preventDefault();
+    try {
+      const { data } = await tarifaMaterialService.create(newMaterial);
+      setTarifasMateriales(prev => [...prev, data]);
+      setNewMaterial({ categoria: newMaterial.categoria, nombre: '', precio: '', unidad: newMaterial.unidad });
+      setStatus('Material creado y agregado al catálogo correctamente.');
+      if (onTarifasUpdated) {
+        await onTarifasUpdated();
+      }
+    } catch (err) {
+      setStatus(`Error al crear material: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const startEditMaterial = (m) => {
+    setEditingMaterialId(m.id);
+    setEditMaterialDraft({ ...m });
+  };
+
+  const handleSaveEditMaterial = async () => {
+    try {
+      const { data } = await tarifaMaterialService.update(editingMaterialId, editMaterialDraft);
+      setTarifasMateriales(prev => prev.map(m => m.id === editingMaterialId ? data : m));
+      setEditingMaterialId(null);
+      setStatus('Material actualizado correctamente.');
+      if (onTarifasUpdated) {
+        await onTarifasUpdated();
+      }
+    } catch (err) {
+      setStatus(`Error al actualizar material: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  const handleDeleteMaterial = async (id) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este material?')) return;
+    try {
+      await tarifaMaterialService.delete(id);
+      setTarifasMateriales(prev => prev.filter(m => m.id !== id));
+      setStatus('Material eliminado correctamente.');
+      if (onTarifasUpdated) {
+        await onTarifasUpdated();
+      }
+    } catch (err) {
+      setStatus(`Error al eliminar material: ${err.response?.data?.message || err.message}`);
     }
   };
 
@@ -157,14 +204,14 @@ export default function Setup({
       </div>
 
       <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
-        <div className="section-title"><span>03</span><h2>Crear Usuario (Bcrypt)</h2></div>
+        <div className="section-title"><span>03</span><h2>Crear Usuario</h2></div>
         <form onSubmit={handleUserSubmit} autoComplete="off" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', alignItems: 'end' }}>
           <label className="field">
             <span>Nombre de usuario</span>
             <input
               type="text"
               required
-              value={userDraft.nombre}
+              value={userDraft.nombre}  
               onChange={(e) => setUserDraft({ ...userDraft, nombre: e.target.value })}
               placeholder="Ej. Pedro"
               autoComplete="off"
@@ -229,35 +276,9 @@ export default function Setup({
 
       {tarifas && (
         <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
-          <div className="section-title"><span>04</span><h2>Tarifas y Costes Base</h2></div>
+          <div className="section-title"><span>04</span><h2>Configuración de Costes Operativos y Margen</h2></div>
           <form onSubmit={handleTarifasSubmit} autoComplete="off">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '20px' }}>
-              <div>
-                <h3 style={{ fontSize: '1rem', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>Coste Materiales</h3>
-                <div style={{ display: 'grid', gap: '10px' }}>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Porex (€/m³)</span>
-                    <input type="number" step="0.01" value={tarifas.materiales.porex} onChange={(e) => handleMaterialesChange('porex', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Line-X (€/m²)</span>
-                    <input type="number" step="0.01" value={tarifas.materiales.linex} onChange={(e) => handleMaterialesChange('linex', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Fibra (€/m²)</span>
-                    <input type="number" step="0.01" value={tarifas.materiales.fibra} onChange={(e) => handleMaterialesChange('fibra', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Pintura (€/m²)</span>
-                    <input type="number" step="0.01" value={tarifas.materiales.pintura} onChange={(e) => handleMaterialesChange('pintura', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mortero (€/m²)</span>
-                    <input type="number" step="0.01" value={tarifas.materiales.mortero} onChange={(e) => handleMaterialesChange('mortero', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                </div>
-              </div>
-
               <div>
                 <h3 style={{ fontSize: '1rem', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>Coste de Mano de Obra</h3>
                 <div style={{ display: 'grid', gap: '10px' }}>
@@ -322,11 +343,109 @@ export default function Setup({
               </div>
             </div>
             <button type="submit" style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold' }}>
-              Guardar Tarifas y Costes
+              Guardar Tarifas y Margen
             </button>
           </form>
         </div>
       )}
+
+      {/* Materials database catalog management */}
+      <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
+        <div className="section-title"><span>05</span><h2>Catálogo de Materiales (Base de Datos)</h2></div>
+        
+        {/* Create material form */}
+        <form onSubmit={handleCreateMaterial} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px', padding: '16px', background: 'var(--color-surface-container-low)', borderRadius: '6px', border: '1px solid var(--color-border-light)', alignItems: 'end' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Categoría</span>
+            <select value={newMaterial.categoria} onChange={(e) => {
+              const cat = e.target.value;
+              setNewMaterial(prev => ({
+                ...prev,
+                categoria: cat,
+                unidad: cat === 'porex' ? 'm3' : 'm2'
+              }));
+            }} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
+              <option value="porex">Porex</option>
+              <option value="linex">Line-X</option>
+              <option value="fibra">Fibra</option>
+              <option value="pintura">Pintura</option>
+              <option value="mortero">Mortero</option>
+            </select>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Nombre de la variedad</span>
+            <input type="text" placeholder="Ej: Porex Gris EPS 20" required value={newMaterial.nombre} onChange={(e) => setNewMaterial(prev => ({ ...prev, nombre: e.target.value }))} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Precio Coste (€)</span>
+            <input type="number" step="0.01" min="0" placeholder="Ej: 90.00" required value={newMaterial.precio} onChange={(e) => setNewMaterial(prev => ({ ...prev, precio: e.target.value }))} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Unidad</span>
+            <input type="text" disabled value={newMaterial.unidad} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface-container-high)', color: 'var(--color-text-secondary)', textAlign: 'center' }} />
+          </div>
+
+          <button type="submit" style={{ padding: '10px 15px', fontWeight: 'bold', cursor: 'pointer' }}>Agregar Material</button>
+        </form>
+
+        {/* List of materials with edit/delete actions */}
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left', background: 'var(--color-surface-container-low)' }}>
+                <th style={{ padding: '10px' }}>Categoría</th>
+                <th style={{ padding: '10px' }}>Variedad de Material</th>
+                <th style={{ padding: '10px' }}>Precio Coste</th>
+                <th style={{ padding: '10px' }}>Unidad</th>
+                <th style={{ padding: '10px', textAlign: 'right' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tarifasMateriales.map((m) => (
+                <tr key={m.id} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
+                  <td style={{ padding: '10px', textTransform: 'capitalize', fontWeight: 'bold', color: 'var(--color-primary)' }}>{m.categoria}</td>
+                  <td style={{ padding: '10px' }}>
+                    {editingMaterialId === m.id ? (
+                      <input type="text" value={editMaterialDraft.nombre} onChange={(e) => setEditMaterialDraft(prev => ({ ...prev, nombre: e.target.value }))} style={{ padding: '6px', width: '100%', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                    ) : (
+                      m.nombre
+                    )}
+                  </td>
+                  <td style={{ padding: '10px' }}>
+                    {editingMaterialId === m.id ? (
+                      <input type="number" step="0.01" value={editMaterialDraft.precio} onChange={(e) => setEditMaterialDraft(prev => ({ ...prev, precio: e.target.value }))} style={{ padding: '6px', width: '100px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                    ) : (
+                      money.format(m.precio)
+                    )}
+                  </td>
+                  <td style={{ padding: '10px' }}>{m.unidad}</td>
+                  <td style={{ padding: '10px', textAlign: 'right' }}>
+                    {editingMaterialId === m.id ? (
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button onClick={handleSaveEditMaterial} style={{ padding: '6px 12px', background: 'var(--color-success)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Guardar</button>
+                        <button onClick={() => setEditingMaterialId(null)} style={{ padding: '6px 12px', background: 'var(--color-border)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                        <button onClick={() => startEditMaterial(m)} style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', cursor: 'pointer' }}>Editar</button>
+                        <button onClick={() => handleDeleteMaterial(m.id)} style={{ padding: '6px 12px', background: 'var(--color-error)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar</button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {tarifasMateriales.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>No hay materiales registrados en el catálogo.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
   );
 }

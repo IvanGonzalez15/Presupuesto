@@ -3,7 +3,22 @@ import { BASE_URL } from '../services/api';
 export const parseElementExtraData = (item) => {
   try {
     if (item && item.Foto && item.Foto.trim().startsWith('{')) {
-      return JSON.parse(item.Foto);
+      const parsed = JSON.parse(item.Foto);
+      if (parsed.materials) {
+        parsed.materials = {
+          porex: parsed.materials.porex ?? false,
+          linex: parsed.materials.linex ?? false,
+          fibra: parsed.materials.fibra ?? false,
+          pintura: parsed.materials.pintura ?? false,
+          mortero: parsed.materials.mortero ?? false,
+          porexId: parsed.materials.porexId || null,
+          linexId: parsed.materials.linexId || null,
+          fibraId: parsed.materials.fibraId || null,
+          pinturaId: parsed.materials.pinturaId || null,
+          morteroId: parsed.materials.morteroId || null,
+        };
+      }
+      return parsed;
     }
   } catch (e) {
     console.error('Error parsing extra data in elementHelpers:', e);
@@ -13,7 +28,10 @@ export const parseElementExtraData = (item) => {
     largo: 0,
     ancho: 0,
     alto: 0,
-    materials: { porex: false, linex: false, fibra: false, pintura: false, mortero: false },
+    materials: {
+      porex: false, linex: false, fibra: false, pintura: false, mortero: false,
+      porexId: null, linexId: null, fibraId: null, pinturaId: null, morteroId: null
+    },
     hours: { oficina: 0, programacion: 0, mecanizado: 0, prepost: 0, esculpir: 0, linex: 0, fibra: 0, mortero: 0, pintura: 0, estructura: 0, entrega: 0 }
   };
 };

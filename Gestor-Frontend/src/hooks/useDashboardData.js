@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { clientService, userService, projectService, elementService, tarifaService } from '../services/api';
+import { clientService, userService, projectService, elementService, tarifaService, tarifaMaterialService } from '../services/api';
 
 export default function useDashboardData(token, currentUser, handleLogout) {
   const [clientes, setClientes] = useState([]);
@@ -8,6 +8,7 @@ export default function useDashboardData(token, currentUser, handleLogout) {
   const [elementos, setElementos] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [tarifas, setTarifas] = useState(null);
+  const [tarifasMateriales, setTarifasMateriales] = useState([]);
 
   const [status, setStatusRaw] = useState('Cargando datos...');
   const setStatus = (msg, duration = 4000) => {
@@ -74,20 +75,23 @@ export default function useDashboardData(token, currentUser, handleLogout) {
       setProyectos([]);
       setElementos([]);
       setTarifas(null);
+      setTarifasMateriales([]);
       return;
     }
     async function loadDashboard() {
       try {
-        const [clientesRes, usuariosRes, proyectosRes, tarifasRes] = await Promise.all([
+        const [clientesRes, usuariosRes, proyectosRes, tarifasRes, tarifasMaterialesRes] = await Promise.all([
           clientService.getAll(),
           userService.getAll(),
           projectService.getAll(),
           tarifaService.get(),
+          tarifaMaterialService.getAll(),
         ]);
         setClientes(clientesRes.data);
         setUsuarios(usuariosRes.data);
         setProyectos(proyectosRes.data);
         setTarifas(tarifasRes.data);
+        setTarifasMateriales(tarifasMaterialesRes.data);
         setSelectedProjectId(proyectosRes.data[0]?.id ? String(proyectosRes.data[0].id) : '');
         setStatus('Datos sincronizados');
       } catch (error) {
@@ -146,6 +150,8 @@ export default function useDashboardData(token, currentUser, handleLogout) {
     total,
     refreshProjects,
     tarifas,
-    setTarifas
+    setTarifas,
+    tarifasMateriales,
+    setTarifasMateriales
   };
 }

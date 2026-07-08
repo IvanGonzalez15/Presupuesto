@@ -9,7 +9,7 @@ import useAuth from './hooks/useAuth';
 import useDashboardData from './hooks/useDashboardData';
 import useElementActions from './hooks/useElementActions';
 import { parseElementExtraData } from './utils/elementHelpers';
-import { elementService, tarifaService } from './services/api';
+import { elementService, tarifaService, tarifaMaterialService } from './services/api';
 
 const money = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
@@ -52,7 +52,9 @@ function App() {
     total,
     refreshProjects,
     tarifas,
-    setTarifas
+    setTarifas,
+    tarifasMateriales,
+    setTarifasMateriales
   } = useDashboardData(
     token,
     currentUser,
@@ -102,8 +104,13 @@ function App() {
 
   const handleTarifasUpdated = async () => {
     try {
-      const { data: newRates } = await tarifaService.get();
-      setTarifas(newRates);
+      const [ratesRes, materialsRes] = await Promise.all([
+        tarifaService.get(),
+        tarifaMaterialService.getAll()
+      ]);
+      setTarifas(ratesRes.data);
+      setTarifasMateriales(materialsRes.data);
+      
       if (selectedProjectId) {
         const { data: newElements } = await elementService.getAll(selectedProjectId);
         setElementos(newElements);
@@ -145,6 +152,8 @@ function App() {
             statusMessage={status}
             setStatus={setStatus}
             onTarifasUpdated={handleTarifasUpdated}
+            tarifasMateriales={tarifasMateriales}
+            setTarifasMateriales={setTarifasMateriales}
           />
         )}
 
@@ -182,6 +191,7 @@ function App() {
             updateElementPhoto={updateElementPhoto}
             setStatus={setStatus}
             tarifas={tarifas}
+            tarifasMateriales={tarifasMateriales}
           />
         )}
       </main>

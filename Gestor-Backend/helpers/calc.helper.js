@@ -8,13 +8,6 @@ const getTarifas = () => {
     return JSON.parse(rawData);
   } catch (error) {
     return {
-      materiales: {
-        porex: 90.0,
-        linex: 10.0,
-        fibra: 12.0,
-        pintura: 25.0,
-        mortero: 190.0
-      },
       manoObra: {
         oficina: 25.0,
         programacion: 35.0,
@@ -36,7 +29,22 @@ const getTarifas = () => {
 const parseElementExtraData = (foto) => {
   try {
     if (foto && typeof foto === 'string' && foto.trim().startsWith('{')) {
-      return JSON.parse(foto);
+      const parsed = JSON.parse(foto);
+      if (parsed.materials) {
+        parsed.materials = {
+          porex: parsed.materials.porex ?? false,
+          linex: parsed.materials.linex ?? false,
+          fibra: parsed.materials.fibra ?? false,
+          pintura: parsed.materials.pintura ?? false,
+          mortero: parsed.materials.mortero ?? false,
+          porexId: parsed.materials.porexId || null,
+          linexId: parsed.materials.linexId || null,
+          fibraId: parsed.materials.fibraId || null,
+          pinturaId: parsed.materials.pinturaId || null,
+          morteroId: parsed.materials.morteroId || null
+        };
+      }
+      return parsed;
     }
   } catch (e) {
     console.error('Error parsing element extra data JSON:', e.message);
@@ -46,7 +54,10 @@ const parseElementExtraData = (foto) => {
     largo: 0,
     ancho: 0,
     alto: 0,
-    materials: { porex: false, linex: false, fibra: false, pintura: false, mortero: false },
+    materials: {
+      porex: false, linex: false, fibra: false, pintura: false, mortero: false,
+      porexId: null, linexId: null, fibraId: null, pinturaId: null, morteroId: null
+    },
     hours: { oficina: 0, programacion: 0, mecanizado: 0, prepost: 0, esculpir: 0, linex: 0, fibra: 0, mortero: 0, pintura: 0, estructura: 0, entrega: 0 }
   };
 };
@@ -61,7 +72,7 @@ const calcularMedidas = (largo, ancho, alto) => {
   return { m2, m3 };
 };
 
-const calcularPrecioPieza = (extraData, cantidad = 1) => {
+const calcularPrecioPieza = async (extraData, cantidad = 1) => {
   const TARIFAS = getTarifas();
   const qty = Math.max(Number(cantidad || 1), 1);
   const largo = Number(extraData.largo || 0);
@@ -72,21 +83,78 @@ const calcularPrecioPieza = (extraData, cantidad = 1) => {
   const materials = extraData.materials || {};
   const hours = extraData.hours || {};
 
-  const costPorex = materials.porex ? m3 * TARIFAS.materiales.porex * qty : 0;
-  const costLineX = materials.linex ? m2 * TARIFAS.materiales.linex * qty : 0;
-  const costFibra = materials.fibra ? m2 * TARIFAS.materiales.fibra * qty : 0;
-  const costPintura = materials.pintura ? m2 * TARIFAS.materiales.pintura * qty : 0;
-  const costMortero = materials.mortero ? m2 * TARIFAS.materiales.mortero * qty : 0;
+  const db = require('../models');
+
+  // Fallbacks for legacy boolean flags (e.g. materials.porex = true)
+  let porexId = materials.porexId;
+  if (!porexId && materials.porex) {
+    const defaultMat = await db.TarifaMaterial.findOne({ where: { categoria: 'porex' } });
+    if (defaultMat) porexId = defaultMat.id;
+  }
+  let linexId = materials.linexId;
+  if (!linexId && materials.linex) {
+    const defaultMat = await db.TarifaMaterial.findOne({ where: { categoria: 'linex' } });
+    if (defaultMat) linexId = defaultMat.id;
+  }
+  let fibraId = materials.fibraId;
+  if (!fibraId && materials.fibra) {
+    const defaultMat = await db.TarifaMaterial.findOne({ where: { categoria: 'fibra' } });
+    if (defaultMat) fibraId = defaultMat.id;
+  }
+  let pinturaId = materials.pinturaId;
+  if (!pinturaId && materials.pintura) {
+    const defaultMat = await db.TarifaMaterial.findOne({ where: { categoria: 'pintura' } });
+    if (defaultMat) pinturaId = defaultMat.id;
+  }
+  let morteroId = materials.morteroId;
+  if (!morteroId && materials.mortero) {
+    const defaultMat = await db.TarifaMaterial.findOne({ where: { categoria: 'mortero' } });
+    if (defaultMat) morteroId = defaultMat.id;
+  }
+
+  // Load prices of selected materials
+  let pricePorex = 0;
+  let priceLineX = 0;
+  let priceFibra = 0;
+  let pricePintura = 0;
+  let priceMortero = 0;
+
+  if (porexId) {
+    const mat = await db.TarifaMaterial.findByPk(porexId);
+    if (mat) pricePorex = Number(mat.precio);
+  }
+  if (linexId) {
+    const mat = await db.TarifaMaterial.findByPk(linexId);
+    if (mat) priceLineX = Number(mat.precio);
+  }
+  if (fibraId) {
+    const mat = await db.TarifaMaterial.findByPk(fibraId);
+    if (mat) priceFibra = Number(mat.precio);
+  }
+  if (pinturaId) {
+    const mat = await db.TarifaMaterial.findByPk(pinturaId);
+    if (mat) pricePintura = Number(mat.precio);
+  }
+  if (morteroId) {
+    const mat = await db.TarifaMaterial.findByPk(morteroId);
+    if (mat) priceMortero = Number(mat.precio);
+  }
+
+  const costPorex = porexId ? m3 * pricePorex * qty : 0;
+  const costLineX = linexId ? m2 * priceLineX * qty : 0;
+  const costFibra = fibraId ? m2 * priceFibra * qty : 0;
+  const costPintura = pinturaId ? m2 * pricePintura * qty : 0;
+  const costMortero = morteroId ? m2 * priceMortero * qty : 0;
 
   const costOficina = Number(hours.oficina || 0) * TARIFAS.manoObra.oficina;
   const costProgramacion = Number(hours.programacion || 0) * TARIFAS.manoObra.programacion;
   const costMecanizado = Number(hours.mecanizado || 0) * TARIFAS.manoObra.mecanizado * qty;
   const costPrepost = Number(hours.prepost || 0) * TARIFAS.manoObra.prepost * qty;
   const costEsculpir = Number(hours.esculpir || 0) * TARIFAS.manoObra.esculpir * qty;
-  const costLineXLabor = materials.linex ? Number(hours.linex || 0) * TARIFAS.manoObra.linex * qty : 0;
-  const costFibraLabor = materials.fibra ? Number(hours.fibra || 0) * TARIFAS.manoObra.fibra * qty : 0;
-  const costMorteroLabor = materials.mortero ? Number(hours.mortero || 0) * (TARIFAS.manoObra.mortero || 25) * qty : 0;
-  const costPinturaLabor = materials.pintura ? Number(hours.pintura || 0) * (TARIFAS.manoObra.pintura || 25) * qty : 0;
+  const costLineXLabor = linexId ? Number(hours.linex || 0) * TARIFAS.manoObra.linex * qty : 0;
+  const costFibraLabor = fibraId ? Number(hours.fibra || 0) * TARIFAS.manoObra.fibra * qty : 0;
+  const costMorteroLabor = morteroId ? Number(hours.mortero || 0) * (TARIFAS.manoObra.mortero || 25) * qty : 0;
+  const costPinturaLabor = pinturaId ? Number(hours.pintura || 0) * (TARIFAS.manoObra.pintura || 25) * qty : 0;
   const costEstructura = Number(hours.estructura || 0) * (TARIFAS.manoObra.estructura || 25) * qty;
   const costEntrega = Number(hours.entrega || 0) * (TARIFAS.manoObra.entrega || 25) * qty;
 

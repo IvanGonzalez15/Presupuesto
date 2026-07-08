@@ -37,7 +37,8 @@ export default function Presupuestos({
   handleUploadPhoto,
   updateElementPhoto,
   setStatus,
-  tarifas
+  tarifas,
+  tarifasMateriales
 }) {
   const initialItem = { Nombre: '', Foto: '', Cantidad: 1, Unidad_de_medida: 'ud', Precio: 0, medida_metro_cuadrado: 0, medida_metro_cubico: 0 };
   const [itemDraft, setItemDraft] = useState(initialItem);
@@ -194,6 +195,7 @@ export default function Presupuestos({
                 updateElementExtraValue={updateElementExtraValue}
                 money={money}
                 tarifas={tarifas}
+                tarifasMateriales={tarifasMateriales}
               />
             )}
 
