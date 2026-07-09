@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { parseElementExtraData, serializeElementExtraData } from '../utils/elementHelpers';
 import { exportToExcel as exportToExcelHelper, handleImportExcel as handleImportExcelHelper } from '../utils/excelHelper';
 import { authService, clientService, projectService, elementService, userService } from '../services/api';
@@ -19,6 +19,43 @@ export default function useElementActions({
   money
 }) {
   const pendingUpdates = useRef({});
+  const [undoStack, setUndoStack] = useState([]);
+
+  useEffect(() => {
+    setUndoStack([]);
+  }, [selectedProjectId]);
+
+  const saveStateForUndo = () => {
+    if (!projectItems) return;
+    const snapshot = JSON.parse(JSON.stringify(projectItems));
+    setUndoStack(prev => [...prev.slice(-19), snapshot]);
+  };
+
+  const undo = async () => {
+    if (undoStack.length === 0) return;
+    const previousState = undoStack[undoStack.length - 1];
+    setUndoStack(prev => prev.slice(0, -1));
+    setElementos(previousState);
+    try {
+      await elementService.bulkReplace(selectedProjectId, previousState);
+      await refreshProjects();
+      setStatus('Cambio deshecho (Ctrl+Z).');
+    } catch (err) {
+      setStatus(`Error al deshacer cambio: ${err.message}`);
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        // Solo prevenir por defecto si no se está escribiendo en campos de texto normales (opcional)
+        e.preventDefault();
+        undo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undoStack, selectedProjectId]);
 
   const clearPendingUpdates = () => {
     Object.values(pendingUpdates.current).forEach(clearTimeout);
@@ -88,6 +125,7 @@ export default function useElementActions({
 
   const deleteElemento = async (id) => {
     if (!window.confirm('¿Seguro que quieres eliminar esta partida?')) return;
+    saveStateForUndo();
     try {
       await elementService.delete(id);
       setElementos((current) => current.filter((e) => e.id !== id));
@@ -116,6 +154,7 @@ export default function useElementActions({
   };
 
   const updateElementPhoto = async (item, photoUrl) => {
+    saveStateForUndo();
     try {
       const extra = parseElementExtraData(item);
       extra.fotoUrl = photoUrl;
@@ -134,6 +173,7 @@ export default function useElementActions({
   };
 
   const handleImportExcel = (event) => {
+    saveStateForUndo();
     handleImportExcelHelper(event, selectedProjectId, currentUser, refreshProjects, setElementos, setStatus);
   };
 
@@ -148,6 +188,7 @@ export default function useElementActions({
   };
 
   const updateElementExtraValue = (item, fieldGroup, key, val) => {
+    saveStateForUndo();
     const extra = parseElementExtraData(item);
     if (fieldGroup === 'materials') {
       extra.materials[key] = val;
@@ -188,6 +229,7 @@ export default function useElementActions({
   };
 
   const updateElementQuantity = (item, qty) => {
+    saveStateForUndo();
     const numericQty = Number(qty);
     setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Cantidad: numericQty } : e));
 
@@ -204,6 +246,7 @@ export default function useElementActions({
   };
 
   const updateElementPrice = (item, price) => {
+    saveStateForUndo();
     const numericPrice = Number(price);
     setElementos((current) => current.map((e) => e.id === item.id ? { ...e, Precio: numericPrice } : e));
 
@@ -248,6 +291,7 @@ export default function useElementActions({
       setStatus('Selecciona o crea un proyecto antes de añadir una partida.');
       return;
     }
+    saveStateForUndo();
 
     const payload = {
       ...itemDraft,
@@ -285,6 +329,8 @@ export default function useElementActions({
     handleProjectFieldChange,
     createElemento,
     exportToExcel,
-    handleImportExcel
+    handleImportExcel,
+    undo,
+    canUndo: undoStack.length > 0
   };
 }

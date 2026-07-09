@@ -9,7 +9,7 @@ import useAuth from './hooks/useAuth';
 import useDashboardData from './hooks/useDashboardData';
 import useElementActions from './hooks/useElementActions';
 import { parseElementExtraData } from './utils/elementHelpers';
-import { elementService, tarifaService, tarifaMaterialService } from './services/api';
+import { elementService, tarifaService, tarifaMaterialService, companyService, templateOptionsService } from './services/api';
 
 const money = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
@@ -54,7 +54,11 @@ function App() {
     tarifas,
     setTarifas,
     tarifasMateriales,
-    setTarifasMateriales
+    setTarifasMateriales,
+    companies,
+    setCompanies,
+    templateOptions,
+    setTemplateOptions
   } = useDashboardData(
     token,
     currentUser,
@@ -77,7 +81,9 @@ function App() {
     handleProjectFieldChange,
     createElemento,
     exportToExcel,
-    handleImportExcel
+    handleImportExcel,
+    undo,
+    canUndo
   } = useElementActions({
     currentUser,
     isAdmin,
@@ -104,12 +110,16 @@ function App() {
 
   const handleTarifasUpdated = async () => {
     try {
-      const [ratesRes, materialsRes] = await Promise.all([
+      const [ratesRes, materialsRes, companiesRes, templateOptionsRes] = await Promise.all([
         tarifaService.get(),
-        tarifaMaterialService.getAll()
+        tarifaMaterialService.getAll(),
+        companyService.getAll(),
+        templateOptionsService.get()
       ]);
       setTarifas(ratesRes.data);
       setTarifasMateriales(materialsRes.data);
+      setCompanies(companiesRes.data);
+      setTemplateOptions(templateOptionsRes.data);
       
       if (selectedProjectId) {
         const { data: newElements } = await elementService.getAll(selectedProjectId);
@@ -118,6 +128,18 @@ function App() {
       await refreshProjects();
     } catch (error) {
       setStatus(`Error al refrescar tras actualizar tarifas: ${error.message}`);
+    }
+  };
+
+  const handleProjectRestored = async () => {
+    try {
+      if (selectedProjectId) {
+        const { data: newElements } = await elementService.getAll(selectedProjectId);
+        setElementos(newElements);
+      }
+      await refreshProjects();
+    } catch (error) {
+      setStatus(`Error al refrescar tras restaurar versión: ${error.message}`);
     }
   };
 
@@ -154,6 +176,10 @@ function App() {
             onTarifasUpdated={handleTarifasUpdated}
             tarifasMateriales={tarifasMateriales}
             setTarifasMateriales={setTarifasMateriales}
+            companies={companies}
+            setCompanies={setCompanies}
+            templateOptions={templateOptions}
+            setTemplateOptions={setTemplateOptions}
           />
         )}
 
@@ -192,6 +218,12 @@ function App() {
             setStatus={setStatus}
             tarifas={tarifas}
             tarifasMateriales={tarifasMateriales}
+            companies={companies}
+            setCompanies={setCompanies}
+            templateOptions={templateOptions}
+            handleProjectRestored={handleProjectRestored}
+            undo={undo}
+            canUndo={canUndo}
           />
         )}
       </main>

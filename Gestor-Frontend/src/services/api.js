@@ -54,6 +54,7 @@ export const elementService = {
   update: (id, elementData) => api.put(`/elementos/${id}`, elementData),
   delete: (id) => api.delete(`/elementos/${id}`),
   uploadPhoto: (fileData, filename) => api.post('/elementos/upload', { fileData, filename }),
+  bulkReplace: (proyectoId, items) => api.post(`/elementos/replace/${proyectoId}`, items),
 };
 
 export const userService = {
@@ -70,6 +71,23 @@ export const tarifaMaterialService = {
   create: (data) => api.post('/tarifas-materiales', data),
   update: (id, data) => api.put(`/tarifas-materiales/${id}`, data),
   delete: (id) => api.delete(`/tarifas-materiales/${id}`),
+};
+
+export const companyService = {
+  getAll: () => api.get('/empresas'),
+  updateAll: (companies) => api.put('/empresas', companies),
+};
+
+export const templateOptionsService = {
+  get: () => api.get('/templateoptions'),
+  update: (options) => api.put('/templateoptions', options),
+};
+
+export const versionProyectoService = {
+  getVersiones: (proyectoId) => api.get(`/proyectos/${proyectoId}/versiones`),
+  crearVersion: (proyectoId, data) => api.post(`/proyectos/${proyectoId}/versiones`, data),
+  restaurarVersion: (proyectoId, versionId) => api.post(`/proyectos/${proyectoId}/versiones/${versionId}/restore`),
+  eliminarVersion: (proyectoId, versionId) => api.delete(`/proyectos/${proyectoId}/versiones/${versionId}`),
 };
 
 export default api;

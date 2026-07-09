@@ -15,6 +15,9 @@ const proyectoRoutes = require('./routes/proyecto.routes');
 const elementoRoutes = require('./routes/elemento.routes');
 const tarifaRoutes = require('./routes/tarifa.routes');
 const tarifaMaterialRoutes = require('./routes/tarifaMaterial.routes');
+const versionProyectoRoutes = require('./routes/versionProyecto.routes');
+const authenticateToken = require('./middlewares/auth.middleware');
+const authorizeRoles = require('./middlewares/role.middleware');
 
 const fs = require('fs');
 const app = express();
@@ -35,6 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/clientes', clienteRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/proyectos', proyectoRoutes);
+app.use('/api/proyectos', versionProyectoRoutes);
 app.use('/api/elementos', elementoRoutes);
 app.use('/api/tarifas', tarifaRoutes);
 app.use('/api/tarifas-materiales', tarifaMaterialRoutes);
@@ -58,6 +62,34 @@ app.get('/api/templateoptions', (_req, res, next) => {
     const filePath = path.join(__dirname, 'data', 'templateoptions.json');
     const rawData = fs.readFileSync(filePath, 'utf8');
     res.json(JSON.parse(rawData));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put('/api/empresas', authenticateToken, authorizeRoles('Admin'), (req, res, next) => {
+  try {
+    const companies = req.body;
+    if (!Array.isArray(companies)) {
+      return res.status(400).json({ message: 'El body debe ser un array de empresas.' });
+    }
+    const companiesPath = path.join(__dirname, 'data', 'companies.json');
+    fs.writeFileSync(companiesPath, JSON.stringify(companies, null, 2), 'utf8');
+    res.json(companies);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.put('/api/templateoptions', authenticateToken, authorizeRoles('Admin'), (req, res, next) => {
+  try {
+    const options = req.body;
+    if (!options.noIncluido || !options.formaPago || !options.importante || !options.descripcion) {
+      return res.status(400).json({ message: 'Estructura de opciones no válida (faltan campos noIncluido, formaPago, importante o descripcion).' });
+    }
+    const filePath = path.join(__dirname, 'data', 'templateoptions.json');
+    fs.writeFileSync(filePath, JSON.stringify(options, null, 2), 'utf8');
+    res.json(options);
   } catch (error) {
     next(error);
   }

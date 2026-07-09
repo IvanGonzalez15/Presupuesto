@@ -171,3 +171,40 @@ exports.uploadPhoto = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.bulkReplace = async (req, res, next) => {
+  try {
+    const { proyectoId } = req.params;
+    const items = req.body;
+
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ message: 'El cuerpo de la solicitud debe ser un array de partidas.' });
+    }
+
+    // 1. Eliminar partidas actuales
+    await db.Elemento.destroy({
+      where: { Id_proyecto: proyectoId }
+    });
+
+    // 2. Insertar las partidas del array
+    if (items.length > 0) {
+      const cleanItems = items.map(item => ({
+        Nombre: item.Nombre,
+        Foto: item.Foto || null,
+        Ref: item.Ref,
+        Id_usuario_creador: item.Id_usuario_creador || req.user.id,
+        Id_proyecto: Number(proyectoId),
+        Cantidad: Number(item.Cantidad || 1),
+        Unidad_de_medida: item.Unidad_de_medida || 'ud',
+        Precio: Number(item.Precio || 0),
+        medida_metro_cuadrado: Number(item.medida_metro_cuadrado || 0),
+        medida_metro_cubico: Number(item.medida_metro_cubico || 0)
+      }));
+      await db.Elemento.bulkCreate(cleanItems);
+    }
+
+    res.json({ message: 'Partidas reemplazadas con éxito.' });
+  } catch (error) {
+    next(error);
+  }
+};

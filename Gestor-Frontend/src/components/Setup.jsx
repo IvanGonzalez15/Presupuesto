@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CustomDropdown from './CustomDropdown';
-import { tarifaService, tarifaMaterialService } from '../services/api';
+import { tarifaService, tarifaMaterialService, companyService, templateOptionsService } from '../services/api';
 
 const today = new Date().toISOString().slice(0, 10);
 const initialClient = { Nombre: '', Persona_contacto: '', Email_contacto: '', Numero_contacto: '' };
@@ -18,7 +18,11 @@ export default function Setup({
   setStatus,
   onTarifasUpdated,
   tarifasMateriales = [],
-  setTarifasMateriales
+  setTarifasMateriales,
+  companies = [],
+  setCompanies,
+  templateOptions,
+  setTemplateOptions
 }) {
   const [clientDraft, setClientDraft] = useState(initialClient);
   const [projectDraft, setProjectDraft] = useState(initialProject);
@@ -30,11 +34,39 @@ export default function Setup({
   const [editingMaterialId, setEditingMaterialId] = useState(null);
   const [editMaterialDraft, setEditMaterialDraft] = useState({ categoria: '', nombre: '', precio: '', unidad: '' });
 
+  // Company & IBAN states
+  const [localCompanies, setLocalCompanies] = useState([]);
+  const [selectedCompIdx, setSelectedCompIdx] = useState(0);
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [newIban, setNewIban] = useState('');
+
+  // Template options states
+  const [optionsDraft, setOptionsDraft] = useState(null);
+  const [activeOptTab, setActiveOptTab] = useState('noIncluido');
+  const [optInput, setOptInput] = useState('');
+  const [selectedImpIdx, setSelectedImpIdx] = useState(0);
+  const [noteInput, setNoteInput] = useState('');
+
   useEffect(() => {
     tarifaService.get()
       .then(res => setTarifas(res.data))
       .catch(err => setStatus(`Error al cargar tarifas: ${err.message}`));
   }, []);
+
+  // Sync props to local states
+  useEffect(() => {
+    if (companies && companies.length > 0) {
+      setLocalCompanies(JSON.parse(JSON.stringify(companies)));
+    }
+  }, [companies]);
+
+  useEffect(() => {
+    if (templateOptions) {
+      setOptionsDraft(JSON.parse(JSON.stringify(templateOptions)));
+    }
+  }, [templateOptions]);
+
+  const currentCompany = localCompanies[selectedCompIdx] || null;
 
   const handleClientChange = (e) => {
     const { name, value } = e.target;
@@ -155,6 +187,162 @@ export default function Setup({
     }
   };
 
+  // Company and IBAN handlers
+  const updateCompanyField = (field, val) => {
+    setLocalCompanies(prev => prev.map((comp, idx) => idx === selectedCompIdx ? { ...comp, [field]: val } : comp));
+  };
+
+  const handleCreateCompany = () => {
+    if (!newCompanyName.trim()) return;
+    if (localCompanies.some(c => c.nombre.toLowerCase() === newCompanyName.trim().toLowerCase())) {
+      setStatus('Ya existe una empresa con ese nombre.');
+      return;
+    }
+    const newId = newCompanyName.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const newComp = {
+      id: newId || `empresa-${Date.now()}`,
+      nombre: newCompanyName.trim(),
+      nif: '',
+      direccion1: '',
+      direccion2: '',
+      telefono: '',
+      email: '',
+      web: '',
+      ibans: []
+    };
+    setLocalCompanies(prev => {
+      const nextList = [...prev, newComp];
+      setSelectedCompIdx(nextList.length - 1);
+      return nextList;
+    });
+    setNewCompanyName('');
+    setStatus(`Empresa "${newComp.nombre}" agregada temporalmente. Completa sus datos y haz clic en Guardar.`);
+  };
+
+  const handleDeleteCompany = () => {
+    if (localCompanies.length <= 1) {
+      setStatus('Debe haber al menos una empresa registrada.');
+      return;
+    }
+    const compToDelete = localCompanies[selectedCompIdx];
+    if (!window.confirm(`⚠️ ¿Estás seguro de que deseas eliminar la empresa "${compToDelete.nombre}"?`)) return;
+    setLocalCompanies(prev => {
+      const nextList = prev.filter((_, idx) => idx !== selectedCompIdx);
+      setSelectedCompIdx(0);
+      return nextList;
+    });
+    setStatus(`Empresa "${compToDelete.nombre}" eliminada temporalmente. Haz clic en Guardar para persistir.`);
+  };
+
+  const handleAddIban = () => {
+    if (!newIban.trim()) return;
+    setLocalCompanies(prev => prev.map((comp, idx) => {
+      if (idx === selectedCompIdx) {
+        const ibans = [...(comp.ibans || []), newIban.trim()];
+        return { ...comp, ibans };
+      }
+      return comp;
+    }));
+    setNewIban('');
+  };
+
+  const handleRemoveIban = (indexToRemove) => {
+    setLocalCompanies(prev => prev.map((comp, idx) => {
+      if (idx === selectedCompIdx) {
+        const ibans = (comp.ibans || []).filter((_, i) => i !== indexToRemove);
+        return { ...comp, ibans };
+      }
+      return comp;
+    }));
+  };
+
+  const handleSaveCompanies = async () => {
+    try {
+      const { data } = await companyService.updateAll(localCompanies);
+      setCompanies(data);
+      setStatus('Datos de empresas y cuentas bancarias guardados con éxito.');
+      if (onTarifasUpdated) {
+        await onTarifasUpdated();
+      }
+    } catch (err) {
+      setStatus(`Error al guardar empresas: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
+  // Template options handlers
+  const handleAddSimpleOpt = () => {
+    if (!optInput.trim()) return;
+    setOptionsDraft(prev => ({
+      ...prev,
+      [activeOptTab]: [...prev[activeOptTab], optInput.trim()]
+    }));
+    setOptInput('');
+  };
+
+  const handleRemoveSimpleOpt = (indexToRemove) => {
+    setOptionsDraft(prev => ({
+      ...prev,
+      [activeOptTab]: prev[activeOptTab].filter((_, i) => i !== indexToRemove)
+    }));
+  };
+
+  const handleAddImpGroup = () => {
+    setOptionsDraft(prev => {
+      const nuevoGrupo = [];
+      const importante = [...prev.importante, nuevoGrupo];
+      setSelectedImpIdx(importante.length - 1);
+      return { ...prev, importante };
+    });
+  };
+
+  const handleRemoveImpGroup = () => {
+    if (optionsDraft.importante.length <= 1) return;
+    setOptionsDraft(prev => {
+      const importante = prev.importante.filter((_, i) => i !== selectedImpIdx);
+      setSelectedImpIdx(0);
+      return { ...prev, importante };
+    });
+  };
+
+  const handleAddImpNote = () => {
+    if (!noteInput.trim()) return;
+    setOptionsDraft(prev => {
+      const importante = prev.importante.map((group, idx) => {
+        if (idx === selectedImpIdx) {
+          return [...group, noteInput.trim()];
+        }
+        return group;
+      });
+      return { ...prev, importante };
+    });
+    setNoteInput('');
+  };
+
+  const handleRemoveImpNote = (indexToRemove) => {
+    setOptionsDraft(prev => {
+      const importante = prev.importante.map((group, idx) => {
+        if (idx === selectedImpIdx) {
+          return group.filter((_, i) => i !== indexToRemove);
+        }
+        return group;
+      });
+      return { ...prev, importante };
+    });
+  };
+
+  const handleSaveTemplateOptions = async () => {
+    try {
+      const { data } = await templateOptionsService.update(optionsDraft);
+      setTemplateOptions(data);
+      setStatus('Condiciones y cláusulas del PDF guardadas con éxito.');
+      if (onTarifasUpdated) {
+        await onTarifasUpdated();
+      }
+    } catch (err) {
+      setStatus(`Error al guardar opciones de plantilla: ${err.response?.data?.message || err.message}`);
+    }
+  };
+
   return (
     <section style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="setup-grid">
@@ -251,22 +439,15 @@ export default function Setup({
           />
 
           {userDraft.rol === 'Colaborador' && (
-            <label className="field">
-              <span>Proyecto Asignado</span>
-              <select
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <CustomDropdown
+                label="Proyecto Asignado"
+                placeholder="Selecciona proyecto"
                 value={userDraft.proyectoId}
-                onChange={(e) => setUserDraft({ ...userDraft, proyectoId: e.target.value })}
-                style={{ padding: '8px' }}
-                required
-              >
-                <option value="">Selecciona proyecto</option>
-                {proyectos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.Codigo} - {p.proyecto || 'Sin nombre'}
-                  </option>
-                ))}
-              </select>
-            </label>
+                onChange={(val) => setUserDraft({ ...userDraft, proyectoId: val })}
+                options={proyectos.map(p => ({ id: p.id, label: `${p.Codigo} - ${p.proyecto || 'Sin nombre'}` }))}
+              />
+            </div>
           )}
           <button type="submit" style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold' }}>
             Registrar Usuario
@@ -275,76 +456,72 @@ export default function Setup({
       </div>
 
       {tarifas && (
-        <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
-          <div className="section-title"><span>04</span><h2>Configuración de Costes Operativos y Margen</h2></div>
+        <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '24px' }}>
+          <div className="section-title"><span>04</span><h2>Costes Operativos y Margen Comercial</h2></div>
           <form onSubmit={handleTarifasSubmit} autoComplete="off">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginBottom: '20px' }}>
-              <div>
-                <h3 style={{ fontSize: '1rem', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>Coste de Mano de Obra</h3>
-                <div style={{ display: 'grid', gap: '10px' }}>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Oficina (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.oficina} onChange={(e) => handleManoObraChange('oficina', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Programación (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.programacion} onChange={(e) => handleManoObraChange('programacion', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mecanizado (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.mecanizado} onChange={(e) => handleManoObraChange('mecanizado', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Pegar/Lijar (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.prepost} onChange={(e) => handleManoObraChange('prepost', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Esculpir (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.esculpir} onChange={(e) => handleManoObraChange('esculpir', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mano obra Line-X (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.linex} onChange={(e) => handleManoObraChange('linex', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mano obra Fibra (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.fibra} onChange={(e) => handleManoObraChange('fibra', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mano obra Mortero (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.mortero} onChange={(e) => handleManoObraChange('mortero', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Mano obra Pintura (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.pintura} onChange={(e) => handleManoObraChange('pintura', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Estructura (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.estructura} onChange={(e) => handleManoObraChange('estructura', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Entrega (€/h)</span>
-                    <input type="number" step="0.01" value={tarifas.manoObra.entrega} onChange={(e) => handleManoObraChange('entrega', e.target.value)} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
+            <h3 style={{ fontSize: '1rem', marginBottom: '14px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>
+              Tarifas por hora de los departamentos y procesos
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+              {[
+                { name: 'Oficina', key: 'oficina' },
+                { name: 'Programación', key: 'programacion' },
+                { name: 'Mecanizado', key: 'mecanizado' },
+                { name: 'Pegar / Lijar', key: 'prepost' },
+                { name: 'Esculpir', key: 'esculpir' },
+                { name: 'Mano obra Line-X', key: 'linex' },
+                { name: 'Mano obra Fibra', key: 'fibra' },
+                { name: 'Mano obra Mortero', key: 'mortero' },
+                { name: 'Mano obra Pintura', key: 'pintura' },
+                { name: 'Estructura', key: 'estructura' },
+                { name: 'Entrega / Embalaje', key: 'entrega' }
+              ].map((proc) => (
+                <div key={proc.key} style={{ background: 'var(--color-surface-container-low)', padding: '12px 14px', border: '1px solid var(--color-border-light)', borderRadius: '6px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>
+                    {proc.name}
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={tarifas.manoObra[proc.key] || ''}
+                      onChange={(e) => handleManoObraChange(proc.key, e.target.value)}
+                      style={{ padding: '6px 8px', width: '100%', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', fontSize: '0.9rem', textAlign: 'right', fontWeight: 'bold' }}
+                    />
+                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: '500' }}>€/h</span>
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'var(--color-surface-container-low)', borderRadius: '8px', border: '1px solid var(--color-border-light)' }}>
+              <div style={{ display: 'flex', gap: '16px', alignItems: 'center', maxWidth: '600px' }}>
+                <div style={{ minWidth: '160px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: '6px' }}>
+                    Margen de Venta (Coeficiente Z$1)
+                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      max="1"
+                      value={tarifas.coeficientePVP || ''}
+                      onChange={(e) => setTarifas(prev => ({ ...prev, coeficientePVP: Number(e.target.value) }))}
+                      style={{ padding: '6px 8px', width: '100px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', fontSize: '0.9rem', textAlign: 'center', fontWeight: 'bold' }}
+                    />
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: '1.4', margin: 0 }}>
+                  Por defecto es <strong>0.5</strong>. Al dividir el coste calculado de la pieza entre este coeficiente se obtiene el precio PVP (ej. dividir por 0.5 multiplica el coste neto por 2).
+                </p>
               </div>
 
-              <div>
-                <h3 style={{ fontSize: '1rem', marginBottom: '12px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>Margen de Venta</h3>
-                <div style={{ display: 'grid', gap: '10px' }}>
-                  <label className="field" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)' }}>Coeficiente (Z$1)</span>
-                    <input type="number" step="0.01" min="0.01" max="1" value={tarifas.coeficientePVP} onChange={(e) => setTarifas(prev => ({ ...prev, coeficientePVP: Number(e.target.value) }))} style={{ padding: '6px', width: '120px', textAlign: 'right', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
-                  </label>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: '1.4', margin: '4px 0 0 0' }}>
-                    Por defecto es 0.5. Al dividir el coste entre este coeficiente se calcula el PVP (ej. dividir por 0.5 multiplica el coste por 2).
-                  </p>
-                </div>
-              </div>
+              <button type="submit" style={{ padding: '12px 24px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', borderRadius: '4px', background: 'var(--color-primary)', color: 'white', border: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                Guardar Tarifas y Margen
+              </button>
             </div>
-            <button type="submit" style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold' }}>
-              Guardar Tarifas y Margen
-            </button>
           </form>
         </div>
       )}
@@ -352,25 +529,23 @@ export default function Setup({
       {/* Materials database catalog management */}
       <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
         <div className="section-title"><span>05</span><h2>Catálogo de Materiales (Base de Datos)</h2></div>
-        
-        {/* Create material form */}
         <form onSubmit={handleCreateMaterial} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px', padding: '16px', background: 'var(--color-surface-container-low)', borderRadius: '6px', border: '1px solid var(--color-border-light)', alignItems: 'end' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Categoría</span>
-            <select value={newMaterial.categoria} onChange={(e) => {
-              const cat = e.target.value;
-              setNewMaterial(prev => ({
-                ...prev,
-                categoria: cat,
-                unidad: cat === 'porex' ? 'm3' : 'm2'
-              }));
-            }} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}>
-              <option value="porex">Porex</option>
-              <option value="linex">Line-X</option>
-              <option value="fibra">Fibra</option>
-              <option value="pintura">Pintura</option>
-              <option value="mortero">Mortero</option>
-            </select>
+          <div style={{ flex: 1, minWidth: '150px' }}>
+            <CustomDropdown
+              label="Categoría"
+              placeholder="Seleccionar..."
+              value={newMaterial.categoria}
+              onChange={(val) => {
+                setNewMaterial(prev => ({ ...prev, categoria: val, unidad: val === 'porex' ? 'm3' : 'm2' }));
+              }}
+              options={[
+                { id: 'porex', label: 'Porex' },
+                { id: 'linex', label: 'Line-X' },
+                { id: 'fibra', label: 'Fibra' },
+                { id: 'pintura', label: 'Pintura' },
+                { id: 'mortero', label: 'Mortero' }
+              ]}
+            />
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -391,7 +566,6 @@ export default function Setup({
           <button type="submit" style={{ padding: '10px 15px', fontWeight: 'bold', cursor: 'pointer' }}>Agregar Material</button>
         </form>
 
-        {/* List of materials with edit/delete actions */}
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
@@ -431,7 +605,7 @@ export default function Setup({
                     ) : (
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button onClick={() => startEditMaterial(m)} style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', cursor: 'pointer' }}>Editar</button>
-                        <button onClick={() => handleDeleteMaterial(m.id)} style={{ padding: '6px 12px', background: 'var(--color-error)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar</button>
+                        <button onClick={() => handleDeleteMaterial(m.id)} style={{ padding: '6px 12px', background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar</button>
                       </div>
                     )}
                   </td>
@@ -446,6 +620,249 @@ export default function Setup({
           </table>
         </div>
       </div>
+
+      {/* Section 06: Companies & IBANs */}
+      <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '24px' }}>
+        <div className="section-title"><span>06</span><h2>Gestión de Empresas Emisoras e IBANs</h2></div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+          <div style={{ background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            
+            {/* Alta de nueva empresa */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', borderBottom: '1px solid var(--color-border-light)', paddingBottom: '12px', marginBottom: '4px' }}>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>Nombre Nueva Empresa</span>
+                <input
+                  type="text"
+                  placeholder="Ej: Nueva Empresa SL"
+                  value={newCompanyName}
+                  onChange={(e) => setNewCompanyName(e.target.value)}
+                  style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', width: '100%', fontSize: '0.85rem' }}
+                />
+              </div>
+              <button type="button" onClick={handleCreateCompany} style={{ padding: '8px 16px', cursor: 'pointer', fontWeight: 'bold', height: '36px' }}>+ Crear</button>
+            </div>
+
+            <div>
+              <CustomDropdown
+                label="Seleccionar Empresa"
+                placeholder="Empresa Emisora"
+                value={selectedCompIdx}
+                onChange={(val) => setSelectedCompIdx(Number(val))}
+                options={localCompanies.map((comp, idx) => ({ id: idx, label: comp.nombre }))}
+              />
+            </div>
+
+            {currentCompany && (
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Nombre Fiscal</span>
+                  <input type="text" value={currentCompany.nombre || ''} onChange={(e) => updateCompanyField('nombre', e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>NIF / CIF</span>
+                  <input type="text" value={currentCompany.nif || ''} onChange={(e) => updateCompanyField('nif', e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Dirección 1 (Calle, número)</span>
+                  <input type="text" value={currentCompany.direccion1 || ''} onChange={(e) => updateCompanyField('direccion1', e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Dirección 2 (Población, Provincia)</span>
+                  <input type="text" value={currentCompany.direccion2 || ''} onChange={(e) => updateCompanyField('direccion2', e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Teléfono</span>
+                    <input type="text" value={currentCompany.telefono || ''} onChange={(e) => updateCompanyField('telefono', e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Email</span>
+                    <input type="text" value={currentCompany.email || ''} onChange={(e) => updateCompanyField('email', e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                  </label>
+                </div>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Web corporativa</span>
+                  <input type="text" value={currentCompany.web || ''} onChange={(e) => updateCompanyField('web', e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }} />
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div style={{ background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase', display: 'block', marginBottom: '8px' }}>Cuentas Bancarias Vinculadas</span>
+            
+            {currentCompany && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="ESXX 0000 0000 0000 0000 0000"
+                    value={newIban}
+                    onChange={(e) => setNewIban(e.target.value)}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', flex: 1, fontFamily: 'monospace', fontSize: '0.85rem' }}
+                  />
+                  <button type="button" onClick={handleAddIban} style={{ padding: '8px 16px', cursor: 'pointer', fontWeight: 'bold' }}>Agregar</button>
+                </div>
+
+                <ul style={{ margin: '10px 0 0 0', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
+                  {(currentCompany.ibans || []).map((iban, i) => (
+                    <li key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--color-surface)', borderRadius: '4px', border: '1px solid var(--color-border-light)', fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                      <span>{iban}</span>
+                      <button type="button" onClick={() => handleRemoveIban(i)} style={{ padding: '2px 8px', background: 'transparent', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>Quitar</button>
+                    </li>
+                  ))}
+                  {(!currentCompany.ibans || currentCompany.ibans.length === 0) && (
+                    <li style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic', fontSize: '0.8rem', textAlign: 'center', padding: '20px 0' }}>Sin cuentas bancarias registradas.</li>
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {currentCompany && (
+            <button 
+              type="button" 
+              onClick={handleDeleteCompany} 
+              style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold', background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px' }}
+            >
+              Eliminar Empresa Seleccionada
+            </button>
+          )}
+          <button onClick={handleSaveCompanies} style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px' }}>
+            Guardar Cambios de Empresas e IBANs
+          </button>
+        </div>
+      </div>
+
+      {/* Section 07: Template Options / PDF clauses */}
+      {optionsDraft && (
+        <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '24px' }}>
+          <div className="section-title"><span>07</span><h2>Cláusulas y Condiciones del Presupuesto (PDF)</h2></div>
+          
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', marginBottom: '16px', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {['noIncluido', 'formaPago', 'importante', 'descripcion'].map(tab => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveOptTab(tab)}
+                style={{
+                  padding: '8px 16px',
+                  background: activeOptTab === tab ? 'var(--color-surface-container-high)' : 'transparent',
+                  border: 'none',
+                  borderBottom: activeOptTab === tab ? '2px solid var(--color-primary)' : 'none',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  textTransform: 'uppercase',
+                  color: activeOptTab === tab ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {tab === 'noIncluido' && 'No Incluido'}
+                {tab === 'formaPago' && 'Formas de Pago'}
+                {tab === 'importante' && 'Notas "Importante"'}
+                {tab === 'descripcion' && 'Descripciones / LOPD'}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)' }}>
+            
+            {/* Simple list editor for: noIncluido, formaPago, descripcion */}
+            {activeOptTab !== 'importante' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <textarea
+                    placeholder="Introduce el texto aquí..."
+                    value={optInput}
+                    onChange={(e) => setOptInput(e.target.value)}
+                    rows={3}
+                    style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', flex: 1, resize: 'vertical', fontSize: '0.85rem' }}
+                  />
+                  <button type="button" onClick={handleAddSimpleOpt} style={{ padding: '8px 16px', cursor: 'pointer', alignSelf: 'flex-end', fontWeight: 'bold' }}>Añadir Opción</button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+                  {optionsDraft[activeOptTab].map((text, idx) => (
+                    <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', background: 'var(--color-surface)', padding: '12px', borderRadius: '4px', border: '1px solid var(--color-border-light)' }}>
+                      <span style={{ fontSize: '0.85rem', flex: 1, whiteSpace: 'pre-wrap', lineHeight: '1.4' }}>{text}</span>
+                      <button type="button" onClick={() => handleRemoveSimpleOpt(idx)} style={{ padding: '4px 8px', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', background: 'transparent', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>Quitar</button>
+                    </div>
+                  ))}
+                  {optionsDraft[activeOptTab].length === 0 && (
+                    <p style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic', fontSize: '0.85rem', textAlign: 'center', margin: '20px 0' }}>No hay opciones registradas.</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Special structure editor for: importante (array of arrays of strings) */}
+            {activeOptTab === 'importante' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border-light)', paddingBottom: '12px', width: '100%' }}>
+                  <div style={{ minWidth: '220px' }}>
+                    <CustomDropdown
+                      label="Seleccionar Grupo de Notas"
+                      placeholder="Seleccionar..."
+                      value={selectedImpIdx}
+                      onChange={(val) => {
+                        setSelectedImpIdx(Number(val));
+                        setNoteInput('');
+                      }}
+                      options={optionsDraft.importante.map((_, i) => ({ id: i, label: `Grupo de Viñetas ${i + 1}` }))}
+                    />
+                  </div>
+                  <button type="button" onClick={handleAddImpGroup} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', alignSelf: 'flex-end', height: '42px', marginTop: '18px' }}>+ Crear Nuevo Grupo</button>
+                  {optionsDraft.importante.length > 1 && (
+                    <button type="button" onClick={handleRemoveImpGroup} style={{ padding: '8px 12px', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', background: 'transparent', borderRadius: '4px', fontWeight: 'bold', alignSelf: 'flex-end', height: '42px', marginTop: '18px' }}>Eliminar Grupo Actual</button>
+                  )}
+                </div>
+
+                {optionsDraft.importante[selectedImpIdx] && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Añadir punto de viñeta a este grupo:</span>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        placeholder="Ej. La fabricación se iniciará a partir de recibir el primer pago."
+                        value={noteInput}
+                        onChange={(e) => setNoteInput(e.target.value)}
+                        style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', flex: 1 }}
+                      />
+                      <button type="button" onClick={handleAddImpNote} style={{ padding: '8px 16px', cursor: 'pointer', fontWeight: 'bold' }}>Añadir</button>
+                    </div>
+
+                    <ul style={{ padding: 0, margin: '15px 0 0 0', display: 'flex', flexDirection: 'column', gap: '8px', listStyle: 'none' }}>
+                      {optionsDraft.importante[selectedImpIdx].map((note, idx) => (
+                        <li key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--color-surface)', borderRadius: '4px', border: '1px solid var(--color-border-light)', fontSize: '0.85rem', gap: '15px' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                            <span style={{ color: 'var(--color-primary)', fontWeight: 'bold' }}>•</span>
+                            <span>{note}</span>
+                          </div>
+                          <button type="button" onClick={() => handleRemoveImpNote(idx)} style={{ padding: '2px 8px', background: 'transparent', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>Quitar</button>
+                        </li>
+                      ))}
+                      {optionsDraft.importante[selectedImpIdx].length === 0 && (
+                        <li style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic', fontSize: '0.8rem', textAlign: 'center', padding: '15px 0' }}>Este grupo de viñetas no tiene notas agregadas aún.</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+          </div>
+
+          <div style={{ marginTop: '20px', textAlign: 'right' }}>
+            <button onClick={handleSaveTemplateOptions} style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold', background: 'var(--color-primary)', color: 'white', border: 'none', borderRadius: '4px' }}>
+              Guardar Cambios de Cláusulas y Condiciones
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

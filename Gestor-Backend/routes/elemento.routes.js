@@ -14,6 +14,7 @@ router.get('/:id', elementoController.findOne);
 router.post('/', authorizeRoles('Admin', 'Colaborador'), elementoController.create);
 router.post('/upload', authorizeRoles('Admin', 'Colaborador'), elementoController.uploadPhoto);
 router.put('/:id', authorizeRoles('Admin', 'Colaborador'), elementoController.update);
+router.post('/replace/:proyectoId', authorizeRoles('Admin', 'Colaborador'), elementoController.bulkReplace);
 router.delete('/:id', authorizeRoles('Admin', 'Colaborador'), elementoController.remove);
 
 module.exports = router;

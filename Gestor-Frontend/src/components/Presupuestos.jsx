@@ -8,6 +8,7 @@ import TabListadoElementos from './presupuesto/TabListadoElementos';
 import TabListadoMedidas from './presupuesto/TabListadoMedidas';
 import TabCalculoPresupuesto from './presupuesto/TabCalculoPresupuesto';
 import TabPresupuestoFormal from './presupuesto/TabPresupuestoFormal';
+import VersionHistoryModal from './presupuesto/VersionHistoryModal';
 
 export default function Presupuestos({
   proyectos,
@@ -38,30 +39,26 @@ export default function Presupuestos({
   updateElementPhoto,
   setStatus,
   tarifas,
-  tarifasMateriales
+  tarifasMateriales,
+  companies = [],
+  setCompanies,
+  templateOptions,
+  handleProjectRestored,
+  undo,
+  canUndo
 }) {
   const initialItem = { Nombre: '', Foto: '', Cantidad: 1, Unidad_de_medida: 'ud', Precio: 0, medida_metro_cuadrado: 0, medida_metro_cubico: 0 };
   const [itemDraft, setItemDraft] = useState(initialItem);
 
-  const [companies, setCompanies] = useState([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState('linex');
   const [selectedTemplateId, setSelectedTemplateId] = useState('Template1');
-  const [templateOptions, setTemplateOptions] = useState(null);
+  const [openVersionModal, setOpenVersionModal] = useState(false);
 
   useEffect(() => {
-    api.get('/empresas')
-      .then(res => {
-        setCompanies(res.data);
-        if (res.data.length > 0) {
-          setSelectedCompanyId(res.data[0].id);
-        }
-      })
-      .catch(err => console.error('Error fetching companies:', err));
-
-    api.get('/templateoptions')
-      .then(res => setTemplateOptions(res.data))
-      .catch(err => console.error('Error fetching template options:', err));
-  }, []);
+    if (companies && companies.length > 0 && selectedCompanyId === 'linex' && !companies.find(c => c.id === 'linex')) {
+      setSelectedCompanyId(companies[0].id);
+    }
+  }, [companies]);
 
   const handleItemInputChange = (e) => {
     const { name, value } = e.target;
@@ -96,6 +93,36 @@ export default function Presupuestos({
           </div>
           {selectedProject && (
             <div className="excel-actions" style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={undo}
+                disabled={!canUndo}
+                className="excel-btn export-btn"
+                style={{
+                  padding: '8px 14px',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  opacity: canUndo ? 1 : 0.5,
+                  cursor: canUndo ? 'pointer' : 'not-allowed',
+                  background: 'var(--color-surface-container-high)',
+                  border: '1px solid var(--color-border)'
+                }}
+                title="Deshacer el último cambio (Atajo: Ctrl + Z)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
+                Deshacer
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpenVersionModal(true)}
+                className="excel-btn export-btn"
+                style={{ padding: '8px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-surface-container-high)', border: '1px solid var(--color-border)' }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Historial de Versiones
+              </button>
               <button type="button" onClick={exportToExcel} className="excel-btn export-btn" style={{ padding: '8px 14px', fontSize: '0.85rem' }}>
                 Exportar Excel
               </button>
@@ -218,6 +245,16 @@ export default function Presupuestos({
           <p className="empty-state">Selecciona o crea un proyecto de la lista izquierda para empezar a gestionar el presupuesto.</p>
         )}
       </section>
+
+      {selectedProject && (
+        <VersionHistoryModal
+          isOpen={openVersionModal}
+          onClose={() => setOpenVersionModal(false)}
+          proyectoId={selectedProject.id}
+          onProjectRestored={handleProjectRestored}
+          setStatus={setStatus}
+        />
+      )}
     </section>
   );
 }
