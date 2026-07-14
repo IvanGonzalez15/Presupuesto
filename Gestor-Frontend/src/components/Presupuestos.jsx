@@ -28,6 +28,7 @@ export default function Presupuestos({
   projectItems,
   updateElementQuantity,
   updateElementPrice,
+  updateElementMeasureValue,
   deleteElemento,
   updateElementExtraValue,
   parseElementExtraData,
@@ -86,21 +87,20 @@ export default function Presupuestos({
       />
 
       <section className="panel budget-builder" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <div className="budget-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div className="section-title" style={{ margin: 0, padding: 0, borderBottom: 0 }}>
-            <span>05</span>
-            <h2 style={{ fontSize: '1.25rem' }}>Presupuesto: {selectedProject ? selectedProject.Codigo : 'Sin selección'}</h2>
+        <div className="budget-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '12px' }}>
+          <div className="section-title" style={{ margin: 0, padding: 0, borderBottom: 0, flexShrink: 0 }}>
+            <h2 style={{ fontSize: '1.2rem' }}>Presupuesto: {selectedProject ? selectedProject.Codigo : 'Sin selección'}</h2>
           </div>
           {selectedProject && (
-            <div className="excel-actions" style={{ display: 'flex', gap: '10px' }}>
+            <div className="excel-actions" style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={undo}
                 disabled={!canUndo}
                 className="excel-btn export-btn"
                 style={{
-                  padding: '8px 14px',
-                  fontSize: '0.85rem',
+                  padding: '6px 10px',
+                  fontSize: '0.8rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '4px',
@@ -118,12 +118,12 @@ export default function Presupuestos({
                 type="button"
                 onClick={() => setOpenVersionModal(true)}
                 className="excel-btn export-btn"
-                style={{ padding: '8px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-surface-container-high)', border: '1px solid var(--color-border)' }}
+                style={{ padding: '6px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-surface-container-high)', border: '1px solid var(--color-border)' }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                Historial de Versiones
+                Historial
               </button>
-              <button type="button" onClick={exportToExcel} className="excel-btn export-btn" style={{ padding: '8px 14px', fontSize: '0.85rem' }}>
+              <button type="button" onClick={exportToExcel} className="excel-btn export-btn" style={{ padding: '6px 10px', fontSize: '0.8rem' }}>
                 Exportar Excel
               </button>
               {subTab === '04-presupuesto' && (
@@ -131,14 +131,14 @@ export default function Presupuestos({
                   type="button"
                   onClick={() => exportToPDF('formal-budget-pdf-content', `Presupuesto-${selectedProject.Codigo}.pdf`)}
                   className="excel-btn export-btn"
-                  style={{ padding: '8px 14px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  style={{ padding: '6px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   Exportar PDF
                 </button>
               )}
               {!isViewer && (
-                <label className="excel-btn import-btn" style={{ padding: '8px 14px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <label className="excel-btn import-btn" style={{ padding: '6px 10px', fontSize: '0.8rem', cursor: 'pointer' }}>
                   Importar Excel
                   <input type="file" accept=".xlsx, .xls, .csv" onChange={handleImportExcel} style={{ display: 'none' }} />
                 </label>
@@ -151,11 +151,11 @@ export default function Presupuestos({
           <>
             <div className="excel-sheets-tabs" style={{ display: 'flex', borderBottom: '2px solid var(--color-sheet-border)', background: 'var(--color-sheet-header-bg)', padding: '4px 4px 0 4px', borderRadius: '6px 6px 0 0' }}>
               {[
-                { id: '00-proyecto', label: '00-PROYECTO' },
-                { id: '01-listado_elementos', label: '01-LISTADO_ELEMENTOS' },
-                { id: '02-listado_medidas', label: '02-LISTADO_MEDIDAS' },
-                { id: '03-calculo_presupuesto', label: '03-CALCULO_PRESUPUESTO' },
-                { id: '04-presupuesto', label: '04-PRESUPUESTO' }
+                { id: '00-proyecto', label: 'PROYECTO' },
+                { id: '01-listado_elementos', label: 'LISTADO ELEMENTOS' },
+                { id: '02-listado_medidas', label: 'LISTADO MEDIDAS' },
+                { id: '03-calculo_presupuesto', label: 'CÁLCULO PRESUPUESTO' },
+                { id: '04-presupuesto', label: 'PRESUPUESTO' }
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -212,6 +212,7 @@ export default function Presupuestos({
                 isViewer={isViewer}
                 projectItems={projectItems}
                 updateElementExtraValue={updateElementExtraValue}
+                updateElementMeasureValue={updateElementMeasureValue}
               />
             )}
 

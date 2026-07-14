@@ -347,7 +347,7 @@ export default function Setup({
     <section style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <div className="setup-grid">
         <form className="panel setup-card" onSubmit={handleClientSubmit} autoComplete="off">
-          <div className="section-title"><span>01</span><h2>Crear cliente</h2></div>
+          <div className="section-title"><h2>Crear cliente</h2></div>
           <input name="Nombre" onChange={handleClientChange} placeholder="Nombre fiscal" required value={clientDraft.Nombre} autoComplete="off" />
           <input name="Persona_contacto" onChange={handleClientChange} placeholder="Persona de contacto" value={clientDraft.Persona_contacto} autoComplete="off" />
           <input name="Email_contacto" onChange={handleClientChange} placeholder="Email contacto" type="email" value={clientDraft.Email_contacto} autoComplete="off" />
@@ -355,7 +355,7 @@ export default function Setup({
         </form>
 
         <form className="panel setup-card" onSubmit={handleProjectSubmit} autoComplete="off">
-          <div className="section-title"><span>02</span><h2>Crear proyecto</h2></div>
+          <div className="section-title"><h2>Crear proyecto</h2></div>
           <input name="Codigo" onChange={handleProjectChange} placeholder="Nombre del proyecto" required value={projectDraft.Codigo} autoComplete="off" />
           <input name="Fecha_entrega" onChange={handleProjectChange} required type="date" value={projectDraft.Fecha_entrega} autoComplete="off" />
           
@@ -391,73 +391,11 @@ export default function Setup({
         </form>
       </div>
 
-      <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
-        <div className="section-title"><span>03</span><h2>Crear Usuario</h2></div>
-        <form onSubmit={handleUserSubmit} autoComplete="off" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', alignItems: 'end' }}>
-          <label className="field">
-            <span>Nombre de usuario</span>
-            <input
-              type="text"
-              required
-              value={userDraft.nombre}  
-              onChange={(e) => setUserDraft({ ...userDraft, nombre: e.target.value })}
-              placeholder="Ej. Pedro"
-              autoComplete="off"
-              style={{ padding: '8px' }}
-            />
-          </label>
-          <label className="field">
-            <span>Email</span>
-            <input
-              type="email"
-              value={userDraft.email}
-              onChange={(e) => setUserDraft({ ...userDraft, email: e.target.value })}
-              placeholder="pedro@lxh.es"
-              autoComplete="off"
-              style={{ padding: '8px' }}
-            />
-          </label>
-          <label className="field">
-            <span>Contraseña</span>
-            <input
-              type="password"
-              required
-              value={userDraft.password}
-              onChange={(e) => setUserDraft({ ...userDraft, password: e.target.value })}
-              placeholder="••••••••"
-              autoComplete="new-password"
-              style={{ padding: '8px' }}
-            />
-          </label>
-          
-          <CustomDropdown
-            label="Rol"
-            placeholder="Rol"
-            value={userDraft.rol}
-            onChange={(val) => setUserDraft(prev => ({ ...prev, rol: val, proyectoId: val === 'Colaborador' ? prev.proyectoId : '' }))}
-            options={['Admin', 'Colaborador', 'Viewer'].map(r => ({ id: r, label: r }))}
-          />
 
-          {userDraft.rol === 'Colaborador' && (
-            <div style={{ flex: 1, minWidth: '200px' }}>
-              <CustomDropdown
-                label="Proyecto Asignado"
-                placeholder="Selecciona proyecto"
-                value={userDraft.proyectoId}
-                onChange={(val) => setUserDraft({ ...userDraft, proyectoId: val })}
-                options={proyectos.map(p => ({ id: p.id, label: `${p.Codigo} - ${p.proyecto || 'Sin nombre'}` }))}
-              />
-            </div>
-          )}
-          <button type="submit" style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Registrar Usuario
-          </button>
-        </form>
-      </div>
 
       {tarifas && (
         <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '24px' }}>
-          <div className="section-title"><span>04</span><h2>Costes Operativos y Margen Comercial</h2></div>
+          <div className="section-title"><h2>Costes Operativos y Margen Comercial</h2></div>
           <form onSubmit={handleTarifasSubmit} autoComplete="off">
             <h3 style={{ fontSize: '1rem', marginBottom: '14px', borderBottom: '1px solid var(--color-border)', paddingBottom: '6px', color: 'var(--color-text-primary)' }}>
               Tarifas por hora de los departamentos y procesos
@@ -513,9 +451,7 @@ export default function Setup({
                     />
                   </div>
                 </div>
-                <p style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', lineHeight: '1.4', margin: 0 }}>
-                  Por defecto es <strong>0.5</strong>. Al dividir el coste calculado de la pieza entre este coeficiente se obtiene el precio PVP (ej. dividir por 0.5 multiplica el coste neto por 2).
-                </p>
+
               </div>
 
               <button type="submit" style={{ padding: '12px 24px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem', borderRadius: '4px', background: 'var(--color-primary)', color: 'white', border: 'none', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -528,7 +464,7 @@ export default function Setup({
 
       {/* Materials database catalog management */}
       <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
-        <div className="section-title"><span>05</span><h2>Catálogo de Materiales (Base de Datos)</h2></div>
+        <div className="section-title"><h2>Catálogo de Materiales (Base de Datos)</h2></div>
         <form onSubmit={handleCreateMaterial} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px', padding: '16px', background: 'var(--color-surface-container-low)', borderRadius: '6px', border: '1px solid var(--color-border-light)', alignItems: 'end' }}>
           <div style={{ flex: 1, minWidth: '150px' }}>
             <CustomDropdown
@@ -623,7 +559,7 @@ export default function Setup({
 
       {/* Section 06: Companies & IBANs */}
       <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '24px' }}>
-        <div className="section-title"><span>06</span><h2>Gestión de Empresas Emisoras e IBANs</h2></div>
+        <div className="section-title"><h2>Gestión de Empresas Emisoras e IBANs</h2></div>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
           <div style={{ background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -740,7 +676,7 @@ export default function Setup({
       {/* Section 07: Template Options / PDF clauses */}
       {optionsDraft && (
         <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '24px' }}>
-          <div className="section-title"><span>07</span><h2>Cláusulas y Condiciones del Presupuesto (PDF)</h2></div>
+          <div className="section-title"><h2>Cláusulas y Condiciones del Presupuesto (PDF)</h2></div>
           
           <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)', marginBottom: '16px', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
             {['noIncluido', 'formaPago', 'importante', 'descripcion'].map(tab => (
@@ -863,6 +799,77 @@ export default function Setup({
           </div>
         </div>
       )}
+
+      <div className="panel setup-card" style={{ width: '100%', padding: '24px', boxSizing: 'border-box', marginTop: '20px' }}>
+        <div className="section-title"><h2>Crear Usuario</h2></div>
+        <form onSubmit={handleUserSubmit} autoComplete="off" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', alignItems: 'end' }}>
+          <label className="field">
+            <span>Nombre de usuario</span>
+            <input
+              type="text"
+              required
+              value={userDraft.nombre}  
+              onChange={(e) => setUserDraft({ ...userDraft, nombre: e.target.value })}
+              placeholder="Ej. Pedro"
+              autoComplete="off"
+              style={{ padding: '8px' }}
+            />
+          </label>
+          <label className="field">
+            <span>Email</span>
+            <input
+              type="email"
+              value={userDraft.email}
+              onChange={(e) => setUserDraft({ ...userDraft, email: e.target.value })}
+              placeholder="pedro@lxh.es"
+              autoComplete="off"
+              style={{ padding: '8px' }}
+            />
+          </label>
+          <label className="field">
+            <span>Contraseña</span>
+            <input
+              type="password"
+              required
+              value={userDraft.password}
+              onChange={(e) => setUserDraft({ ...userDraft, password: e.target.value })}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              style={{ padding: '8px' }}
+            />
+          </label>
+          
+          <label className="field">
+            <span>Rol</span>
+            <CustomDropdown
+              placeholder="Rol"
+              value={userDraft.rol}
+              onChange={(val) => setUserDraft(prev => ({ ...prev, rol: val, proyectoId: val === 'Colaborador' ? prev.proyectoId : '' }))}
+              options={['Admin', 'Colaborador', 'Viewer'].map(r => ({ id: r, label: r }))}
+            />
+          </label>
+
+          {userDraft.rol === 'Colaborador' && (
+            <div style={{ flex: 1, minWidth: '200px' }}>
+              <label className="field">
+                <span>Proyecto Asignado</span>
+                <CustomDropdown
+                  placeholder="Selecciona proyecto"
+                  value={userDraft.proyectoId}
+                  onChange={(val) => setUserDraft({ ...userDraft, proyectoId: val })}
+                  options={proyectos.map(p => ({ id: p.id, label: `${p.Codigo} - ${p.proyecto || 'Sin nombre'}` }))}
+                />
+              </label>
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: '600', opacity: 0 }}>&nbsp;</span>
+            <button type="submit" style={{ padding: '10px 20px', cursor: 'pointer', fontWeight: 'bold', height: '38px', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              Registrar Usuario
+            </button>
+          </div>
+        </form>
+      </div>
     </section>
   );
 }

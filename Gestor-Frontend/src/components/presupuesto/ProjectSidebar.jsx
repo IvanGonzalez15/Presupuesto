@@ -14,7 +14,7 @@ export default function ProjectSidebar({
 }) {
   return (
     <aside className="panel project-list">
-      <div className="section-title"><span>04</span><h2>Proyectos</h2></div>
+      <div className="section-title"><h2>Proyectos</h2></div>
       
       {/* Selector de Cliente para ADMIN en la barra lateral superior de proyectos */}
       {isAdmin && (

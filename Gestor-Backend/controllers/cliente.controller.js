@@ -45,14 +45,11 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const data = normalizeCliente(req.body);
-    const [affectedRows] = await db.Cliente.update(data, {
-      where: { id: req.params.id }
-    });
-    
-    if (!affectedRows) return res.status(404).json({ message: 'Cliente no encontrado' });
-    
-    const updatedCliente = await db.Cliente.findByPk(req.params.id);
-    res.json(updatedCliente);
+    const cliente = await db.Cliente.findByPk(req.params.id);
+    if (!cliente) return res.status(404).json({ message: 'Cliente no encontrado' });
+
+    await cliente.update(data);
+    res.json(cliente);
   } catch (error) {
     next(error);
   }

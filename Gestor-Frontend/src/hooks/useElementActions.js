@@ -262,6 +262,23 @@ export default function useElementActions({
     });
   };
 
+  const updateElementMeasureValue = (item, field, val) => {
+    saveStateForUndo();
+    const numericVal = Number(val || 0);
+    setElementos((current) => current.map((e) => e.id === item.id ? { ...e, [field]: numericVal } : e));
+
+    queueElementUpdate(item.id, async () => {
+      try {
+        const payload = { ...item, [field]: numericVal };
+        const { data } = await elementService.update(item.id, payload);
+        setElementos((current) => current.map((e) => e.id === item.id ? data : e));
+        await refreshProjects();
+      } catch (err) {
+        setStatus(`Error al actualizar medida: ${err.message}`);
+      }
+    });
+  };
+
   const handleUpdateProject = async (e) => {
     e.preventDefault();
     try {
@@ -325,6 +342,7 @@ export default function useElementActions({
     updateElementExtraValue,
     updateElementQuantity,
     updateElementPrice,
+    updateElementMeasureValue,
     handleUpdateProject,
     handleProjectFieldChange,
     createElemento,

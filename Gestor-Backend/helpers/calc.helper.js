@@ -72,13 +72,21 @@ const calcularMedidas = (largo, ancho, alto) => {
   return { m2, m3 };
 };
 
-const calcularPrecioPieza = async (extraData, cantidad = 1) => {
+const calcularPrecioPieza = async (extraData, cantidad = 1, manualM2 = null, manualM3 = null) => {
   const TARIFAS = getTarifas();
   const qty = Math.max(Number(cantidad || 1), 1);
   const largo = Number(extraData.largo || 0);
   const ancho = Number(extraData.ancho || 0);
   const alto = Number(extraData.alto || 0);
-  const { m2, m3 } = calcularMedidas(largo, ancho, alto);
+
+  let m2 = (manualM2 !== null && manualM2 !== undefined && Number(manualM2) !== 0) ? Number(manualM2) : 0;
+  let m3 = (manualM3 !== null && manualM3 !== undefined && Number(manualM3) !== 0) ? Number(manualM3) : 0;
+
+  if (m2 === 0 && m3 === 0) {
+    const calc = calcularMedidas(largo, ancho, alto);
+    m2 = calc.m2;
+    m3 = calc.m3;
+  }
 
   const materials = extraData.materials || {};
   const hours = extraData.hours || {};
@@ -179,4 +187,5 @@ module.exports = {
   calcularMedidas,
   calcularPrecioPieza,
   getTarifas
-};
+}
+;

@@ -19,7 +19,7 @@ const normalizeElemento = async (body) => {
 
   if (base.Foto && base.Foto.trim().startsWith('{')) {
     const extra = parseElementExtraData(base.Foto);
-    const calculated = await calcularPrecioPieza(extra, base.Cantidad);
+    const calculated = await calcularPrecioPieza(extra, base.Cantidad, base.medida_metro_cuadrado, base.medida_metro_cubico);
     base.medida_metro_cuadrado = calculated.medida_metro_cuadrado;
     base.medida_metro_cubico = calculated.medida_metro_cubico;
     base.Precio = calculated.precio;
@@ -90,14 +90,11 @@ exports.create = async (req, res, next) => {
 exports.update = async (req, res, next) => {
   try {
     const data = await normalizeElemento(req.body);
-    const [affectedRows] = await db.Elemento.update(data, {
-      where: { id: req.params.id }
-    });
-    
-    if (!affectedRows) return res.status(404).json({ message: 'Elemento no encontrado' });
-    
-    const updatedElemento = await db.Elemento.findByPk(req.params.id);
-    res.json(updatedElemento);
+    const elemento = await db.Elemento.findByPk(req.params.id);
+    if (!elemento) return res.status(404).json({ message: 'Elemento no encontrado' });
+
+    await elemento.update(data);
+    res.json(elemento);
   } catch (error) {
     next(error);
   }

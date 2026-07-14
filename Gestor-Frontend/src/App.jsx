@@ -77,6 +77,7 @@ function App() {
     updateElementExtraValue,
     updateElementQuantity,
     updateElementPrice,
+    updateElementMeasureValue,
     handleUpdateProject,
     handleProjectFieldChange,
     createElemento,
@@ -206,6 +207,7 @@ function App() {
             projectItems={projectItems}
             updateElementQuantity={updateElementQuantity}
             updateElementPrice={updateElementPrice}
+            updateElementMeasureValue={updateElementMeasureValue}
             deleteElemento={deleteElemento}
             updateElementExtraValue={updateElementExtraValue}
             parseElementExtraData={parseElementExtraData}

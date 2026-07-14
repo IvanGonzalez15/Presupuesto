@@ -1,5 +1,6 @@
 import React from 'react';
 import { Template1, Template2 } from '../templates';
+import CustomDropdown from '../CustomDropdown';
 
 export default function TabPresupuestoFormal({
   selectedCompanyId,
@@ -21,49 +22,27 @@ export default function TabPresupuestoFormal({
       {/* Selectores de empresa y plantilla */}
       <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Empresa Emisora:</span>
-          <select
+        <div style={{ minWidth: '220px' }}>
+          <CustomDropdown
+            label="Empresa Emisora"
+            placeholder="Seleccionar..."
             value={selectedCompanyId}
-            onChange={(e) => setSelectedCompanyId(e.target.value)}
-            style={{
-              padding: '10px 14px',
-              background: 'var(--color-surface)',
-              border: '2px solid var(--color-border)',
-              borderRadius: 'var(--rounded-lg)',
-              fontSize: '0.85rem',
-              fontWeight: '600',
-              color: 'var(--color-text-primary)',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            {companies.map(c => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
-            ))}
-          </select>
+            onChange={setSelectedCompanyId}
+            options={companies.map(c => ({ id: c.id, label: c.nombre }))}
+          />
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-secondary)' }}>Plantilla Visual:</span>
-          <select
+        <div style={{ minWidth: '260px' }}>
+          <CustomDropdown
+            label="Plantilla Visual"
+            placeholder="Seleccionar..."
             value={selectedTemplateId}
-            onChange={(e) => setSelectedTemplateId(e.target.value)}
-            style={{
-              padding: '10px 14px',
-              background: 'var(--color-surface)',
-              border: '2px solid var(--color-border)',
-              borderRadius: 'var(--rounded-lg)',
-              fontSize: '0.85rem',
-              fontWeight: '600',
-              color: 'var(--color-text-primary)',
-              outline: 'none',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="Template1">Plantilla Clásica (Template 1)</option>
-            <option value="Template2">Plantilla Moderna (Template 2)</option>
-          </select>
+            onChange={setSelectedTemplateId}
+            options={[
+              { id: 'Template1', label: 'Plantilla Clásica (Template 1)' },
+              { id: 'Template2', label: 'Plantilla Moderna (Template 2)' }
+            ]}
+          />
         </div>
       </div>
 

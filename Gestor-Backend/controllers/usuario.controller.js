@@ -56,12 +56,11 @@ exports.update = async (req, res, next) => {
       updateData.password_hash = password_hash;
     }
 
-    const [affectedRows] = await db.Usuario.update(updateData, {
-      where: { id: req.params.id }
-    });
-    
-    if (!affectedRows) return res.status(404).json({ message: 'Usuario no encontrado' });
-    
+    const usuario = await db.Usuario.findByPk(req.params.id);
+    if (!usuario) return res.status(404).json({ message: 'Usuario no encontrado' });
+
+    await usuario.update(updateData);
+
     const updatedUsuario = await db.Usuario.findByPk(req.params.id, {
       attributes: { exclude: ['password_hash'] }
     });

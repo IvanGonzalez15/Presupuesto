@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { getPhotoUrl, parseElementExtraData } from '../../utils/elementHelpers';
+import CustomDropdown from '../CustomDropdown';
 
 export default function TabCalculoPresupuesto({
   isViewer,
@@ -9,212 +10,327 @@ export default function TabCalculoPresupuesto({
   tarifas,
   tarifasMateriales = []
 }) {
-  const inputStyle = { width: '55px', padding: '4px 4px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', textAlign: 'center', fontSize: '0.8rem' };
-  const cellStyle = { padding: '4px', textAlign: 'center' };
-  const thStyle = { padding: '6px', fontSize: '0.7rem', textAlign: 'center' };
+  const [selectedItemId, setSelectedItemId] = useState(null);
+
+  // Auto-seleccionar la primera pieza si no hay ninguna seleccionada
+  useEffect(() => {
+    if (projectItems.length > 0 && !selectedItemId) {
+      setSelectedItemId(projectItems[0].id);
+    }
+  }, [projectItems, selectedItemId]);
+
+  const activeItem = projectItems.find(item => item.id === selectedItemId) || projectItems[0];
+  const activeExtra = activeItem ? parseElementExtraData(activeItem) : null;
+
+  const inputStyle = {
+    padding: '8px 12px',
+    borderRadius: '4px',
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-surface)',
+    color: 'var(--color-text-primary)',
+    fontSize: '0.85rem',
+    width: '100%',
+    boxSizing: 'border-box'
+  };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Dynamic database material tariffs view */}
-      <div className="excel-calc-card" style={{ background: 'var(--color-surface-container-low)', padding: '16px', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
-        <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--color-text-primary)' }}>TARIFAS DE MATERIALES EN BASE DE DATOS</h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', fontSize: '0.8rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '80px' }}>
+      
+      {/* 1. Tarifas de materiales (Compactas en cabecera) */}
+      <div style={{ background: 'var(--color-surface-container-low)', padding: '12px 16px', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
+        <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Tarifas activas en Base de Datos</h4>
+        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '0.75rem', color: 'var(--color-text-primary)' }}>
           {['porex', 'linex', 'fibra', 'pintura', 'mortero'].map(cat => {
             const list = tarifasMateriales.filter(m => m.categoria === cat);
             return (
-              <div key={cat} style={{ background: 'var(--color-surface)', padding: '8px 12px', border: '1px solid var(--color-border-light)', borderRadius: '4px' }}>
+              <div key={cat} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <strong style={{ textTransform: 'uppercase', color: 'var(--color-primary)' }}>{cat}:</strong>
-                <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px', listStyleType: 'disc' }}>
-                  {list.map(m => (
-                    <li key={m.id}>{m.nombre}: {money.format(m.precio)}/{m.unidad}</li>
-                  ))}
-                  {list.length === 0 && <li>Ninguno registrado</li>}
-                </ul>
+                <span>{list.map(m => `${m.nombre} (${money.format(m.precio)}/${m.unidad})`).join(', ') || 'Ninguno'}</span>
               </div>
             );
           })}
         </div>
       </div>
 
-      <div className="items-table-wrapper" style={{ overflowX: 'auto' }}>
-        <table className="excel-style-table" style={{ width: '100%', borderCollapse: 'collapse', background: 'var(--color-sheet-cell-bg)', minWidth: '1600px' }}>
-          <thead>
-            <tr style={{ background: 'var(--color-sheet-header-bg)', borderBottom: '2px solid var(--color-sheet-border)' }}>
-              <th rowSpan={2} style={{ padding: '8px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', width: '60px' }}>FOTO</th>
-              <th rowSpan={2} style={{ padding: '8px', textAlign: 'left', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)' }}>PIEZA</th>
-              <th rowSpan={2} style={{ padding: '8px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)' }}>UDS</th>
-              <th colSpan={5} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MATERIALES (VARIEDAD Y COSTE)</th>
-              <th colSpan={11} style={{ padding: '6px', textAlign: 'center', fontSize: '0.75rem', borderRight: '1px solid var(--color-sheet-border)', background: 'var(--color-surface-container-low)', borderBottom: '1px solid var(--color-sheet-border)' }}>MANO DE OBRA / PROCESOS (horas)</th>
-              <th rowSpan={2} style={{ padding: '8px', textAlign: 'right', fontSize: '0.75rem' }}>PRECIO CALC.</th>
-            </tr>
-            <tr style={{ background: 'var(--color-sheet-header-bg)', borderBottom: '2px solid var(--color-sheet-border)' }}>
-              <th style={thStyle}>Porex</th>
-              <th style={thStyle}>Line-X</th>
-              <th style={thStyle}>Fibra</th>
-              <th style={thStyle}>Pintura</th>
-              <th style={{ ...thStyle, borderRight: '1px solid var(--color-sheet-border)' }}>Mortero</th>
-              <th style={thStyle}>Ofic.</th>
-              <th style={thStyle}>Progr.</th>
-              <th style={thStyle}>Mecan.</th>
-              <th style={thStyle}>Lijar</th>
-              <th style={thStyle}>Esculpir</th>
-              <th style={thStyle}>Line-X</th>
-              <th style={thStyle}>Fibra</th>
-              <th style={thStyle}>Mortero</th>
-              <th style={thStyle}>Pintura</th>
-              <th style={thStyle}>Estruct.</th>
-              <th style={{ ...thStyle, borderRight: '1px solid var(--color-sheet-border)' }}>Entrega</th>
-            </tr>
-          </thead>
-          <tbody>
+      {/* 2. Maquetación Master-Detail (2 Columnas) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '24px', alignItems: 'start' }}>
+        
+        {/* Columna Izquierda: Listado de piezas */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <h3 style={{ margin: '0', fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Piezas del Presupuesto</h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '720px', overflowY: 'auto', paddingRight: '4px' }}>
             {projectItems.map((item) => {
               const extra = parseElementExtraData(item);
+              const isSelected = activeItem && activeItem.id === item.id;
+              
+              // Calcular total horas
+              const totalHrs = Object.values(extra.hours || {}).reduce((acc, h) => acc + Number(h || 0), 0);
+              
+              // Badge de materiales seleccionados
+              const activeMats = [];
+              if (extra.materials.porexId) activeMats.push('Porex');
+              if (extra.materials.linexId) activeMats.push('Line-X');
+              if (extra.materials.fibraId) activeMats.push('Fibra');
+              if (extra.materials.pinturaId) activeMats.push('Pintura');
+              if (extra.materials.morteroId) activeMats.push('Mortero');
+
               return (
-                <tr key={item.id} style={{ borderBottom: '1px solid var(--color-border-light)' }}>
-                  <td style={{ padding: '4px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedItemId(item.id)}
+                  style={{
+                    background: isSelected ? 'var(--color-surface-container-high)' : 'var(--color-surface)',
+                    border: isSelected ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                    borderRadius: '6px',
+                    padding: '12px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: isSelected ? '0 4px 6px -1px rgba(131, 212, 211, 0.15)' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}
+                >
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                     {extra && extra.fotoUrl ? (
-                      <img alt={item.Nombre} src={getPhotoUrl(item.Foto)} style={{ width: '32px', height: '32px', objectFit: 'cover', borderRadius: '4px', margin: '0 auto', display: 'block' }} />
+                      <img alt={item.Nombre} src={getPhotoUrl(item.Foto)} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
                     ) : (
-                      <div style={{ width: '32px', height: '32px', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--color-text-secondary)', borderRadius: '4px', margin: '0 auto' }}>—</div>
+                      <div style={{ width: '40px', height: '40px', background: 'var(--color-surface-container-low)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--color-text-secondary)', borderRadius: '4px' }}>—</div>
                     )}
-                  </td>
-                  <td style={{ padding: '8px', fontWeight: 'bold', borderRight: '1px solid var(--color-border-light)' }}>{item.Nombre}</td>
-                  <td style={{ padding: '8px', textAlign: 'center', borderRight: '1px solid var(--color-border-light)' }}>{item.Cantidad}</td>
-                  
-                  {/* Porex Dropdown Select */}
-                  <td style={cellStyle}>
-                    <select
-                      value={extra.materials.porexId || ''}
-                      disabled={isViewer}
-                      onChange={(e) => {
-                        const val = e.target.value ? Number(e.target.value) : null;
-                        updateElementExtraValue(item, 'materials', 'porexId', val);
-                      }}
-                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
-                    >
-                      <option value="">Ninguno</option>
-                      {tarifasMateriales.filter(m => m.categoria === 'porex').map(m => (
-                        <option key={m.id} value={m.id}>{m.nombre}</option>
-                      ))}
-                    </select>
-                  </td>
+                    <div style={{ flex: 1, minWidth: '0' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--color-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.Nombre}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '2px' }}>Ref: {item.Ref || 'S/R'} • Cantidad: {item.Cantidad}</div>
+                    </div>
+                  </div>
 
-                  {/* Line-X Dropdown Select */}
-                  <td style={cellStyle}>
-                    <select
-                      value={extra.materials.linexId || ''}
-                      disabled={isViewer}
-                      onChange={(e) => {
-                        const val = e.target.value ? Number(e.target.value) : null;
-                        updateElementExtraValue(item, 'materials', 'linexId', val);
-                      }}
-                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
-                    >
-                      <option value="">Ninguno</option>
-                      {tarifasMateriales.filter(m => m.categoria === 'linex').map(m => (
-                        <option key={m.id} value={m.id}>{m.nombre}</option>
-                      ))}
-                    </select>
-                  </td>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', fontSize: '0.7rem' }}>
+                    <span style={{ background: 'var(--color-surface-container-lowest)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--color-border-light)' }}>
+                      {totalHrs} horas
+                    </span>
+                    {activeMats.map(mat => (
+                      <span key={mat} style={{ background: 'var(--color-surface-container-lowest)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--color-border-light)', color: 'var(--color-primary)' }}>
+                        {mat}
+                      </span>
+                    ))}
+                    {activeMats.length === 0 && (
+                      <span style={{ color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>Sin materiales</span>
+                    )}
+                  </div>
 
-                  {/* Fibra Dropdown Select */}
-                  <td style={cellStyle}>
-                    <select
-                      value={extra.materials.fibraId || ''}
-                      disabled={isViewer}
-                      onChange={(e) => {
-                        const val = e.target.value ? Number(e.target.value) : null;
-                        updateElementExtraValue(item, 'materials', 'fibraId', val);
-                      }}
-                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
-                    >
-                      <option value="">Ninguno</option>
-                      {tarifasMateriales.filter(m => m.categoria === 'fibra').map(m => (
-                        <option key={m.id} value={m.id}>{m.nombre}</option>
-                      ))}
-                    </select>
-                  </td>
-
-                  {/* Pintura Dropdown Select */}
-                  <td style={cellStyle}>
-                    <select
-                      value={extra.materials.pinturaId || ''}
-                      disabled={isViewer}
-                      onChange={(e) => {
-                        const val = e.target.value ? Number(e.target.value) : null;
-                        updateElementExtraValue(item, 'materials', 'pinturaId', val);
-                      }}
-                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
-                    >
-                      <option value="">Ninguno</option>
-                      {tarifasMateriales.filter(m => m.categoria === 'pintura').map(m => (
-                        <option key={m.id} value={m.id}>{m.nombre}</option>
-                      ))}
-                    </select>
-                  </td>
-
-                  {/* Mortero Dropdown Select */}
-                  <td style={{ ...cellStyle, borderRight: '1px solid var(--color-border-light)' }}>
-                    <select
-                      value={extra.materials.morteroId || ''}
-                      disabled={isViewer}
-                      onChange={(e) => {
-                        const val = e.target.value ? Number(e.target.value) : null;
-                        updateElementExtraValue(item, 'materials', 'morteroId', val);
-                      }}
-                      style={{ width: '90px', padding: '4px', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
-                    >
-                      <option value="">Ninguno</option>
-                      {tarifasMateriales.filter(m => m.categoria === 'mortero').map(m => (
-                        <option key={m.id} value={m.id}>{m.nombre}</option>
-                      ))}
-                    </select>
-                  </td>
-
-                  {/* Hours inputs */}
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.oficina || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'oficina', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.programacion || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'programacion', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.mecanizado || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'mecanizado', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.prepost || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'prepost', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.esculpir || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'esculpir', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.linex || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'linex', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.fibra || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'fibra', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.mortero || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'mortero', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.pintura || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'pintura', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={cellStyle}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.estructura || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'estructura', Number(e.target.value))} style={inputStyle} />
-                  </td>
-                  <td style={{ ...cellStyle, borderRight: '1px solid var(--color-border-light)' }}>
-                    <input type="number" min="0" step="0.5" value={extra.hours.entrega || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(item, 'hours', 'entrega', Number(e.target.value))} style={inputStyle} />
-                  </td>
-
-                  <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                    {money.format(item.Precio)}
-                  </td>
-                </tr>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border-light)', paddingTop: '8px', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Precio Calculado:</span>
+                    <span style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '0.9rem' }}>{money.format(item.Precio)}</span>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
+            {projectItems.length === 0 && (
+              <p style={{ textAlign: 'center', fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontStyle: 'italic', padding: '20px 0' }}>No hay piezas en este presupuesto.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Columna Derecha: Panel de Edición Detallado */}
+        <div>
+          {activeItem && activeExtra ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              <div style={{ background: 'var(--color-surface-container-low)', padding: '20px', borderRadius: '8px', border: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--color-border-light)', paddingBottom: '12px' }}>
+                  <div>
+                    <h2 style={{ margin: '0', fontSize: '1.1rem', color: 'var(--color-text-primary)' }}>Detalle de Pieza: {activeItem.Nombre}</h2>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Edita los materiales y las horas de trabajo a continuación</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Precio Unitario PVP</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--color-primary)' }}>{money.format(activeItem.Precio)}</div>
+                  </div>
+                </div>
+
+                {/* Sección 2.1: Materiales (Desplegables Premium) */}
+                <div>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Materiales y Acabados</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
+                    
+                    <div>
+                      <CustomDropdown
+                        label="Porex"
+                        placeholder="Ninguno"
+                        value={activeExtra.materials.porexId || ''}
+                        disabled={isViewer}
+                        onChange={(val) => {
+                          const numericVal = val ? Number(val) : null;
+                          updateElementExtraValue(activeItem, 'materials', 'porexId', numericVal);
+                        }}
+                        options={[
+                          { id: '', label: 'Ninguno' },
+                          ...tarifasMateriales.filter(m => m.categoria === 'porex').map(m => ({ id: m.id, label: m.nombre }))
+                        ]}
+                      />
+                    </div>
+
+                    <div>
+                      <CustomDropdown
+                        label="Line-X"
+                        placeholder="Ninguno"
+                        value={activeExtra.materials.linexId || ''}
+                        disabled={isViewer}
+                        onChange={(val) => {
+                          const numericVal = val ? Number(val) : null;
+                          updateElementExtraValue(activeItem, 'materials', 'linexId', numericVal);
+                        }}
+                        options={[
+                          { id: '', label: 'Ninguno' },
+                          ...tarifasMateriales.filter(m => m.categoria === 'linex').map(m => ({ id: m.id, label: m.nombre }))
+                        ]}
+                      />
+                    </div>
+
+                    <div>
+                      <CustomDropdown
+                        label="Fibra"
+                        placeholder="Ninguno"
+                        value={activeExtra.materials.fibraId || ''}
+                        disabled={isViewer}
+                        onChange={(val) => {
+                          const numericVal = val ? Number(val) : null;
+                          updateElementExtraValue(activeItem, 'materials', 'fibraId', numericVal);
+                        }}
+                        options={[
+                          { id: '', label: 'Ninguno' },
+                          ...tarifasMateriales.filter(m => m.categoria === 'fibra').map(m => ({ id: m.id, label: m.nombre }))
+                        ]}
+                      />
+                    </div>
+
+                    <div>
+                      <CustomDropdown
+                        label="Pintura"
+                        placeholder="Ninguno"
+                        value={activeExtra.materials.pinturaId || ''}
+                        disabled={isViewer}
+                        onChange={(val) => {
+                          const numericVal = val ? Number(val) : null;
+                          updateElementExtraValue(activeItem, 'materials', 'pinturaId', numericVal);
+                        }}
+                        options={[
+                          { id: '', label: 'Ninguno' },
+                          ...tarifasMateriales.filter(m => m.categoria === 'pintura').map(m => ({ id: m.id, label: m.nombre }))
+                        ]}
+                      />
+                    </div>
+
+                    <div>
+                      <CustomDropdown
+                        label="Mortero"
+                        placeholder="Ninguno"
+                        value={activeExtra.materials.morteroId || ''}
+                        disabled={isViewer}
+                        onChange={(val) => {
+                          const numericVal = val ? Number(val) : null;
+                          updateElementExtraValue(activeItem, 'materials', 'morteroId', numericVal);
+                        }}
+                        options={[
+                          { id: '', label: 'Ninguno' },
+                          ...tarifasMateriales.filter(m => m.categoria === 'mortero').map(m => ({ id: m.id, label: m.nombre }))
+                        ]}
+                      />
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Sección 2.2: Mano de Obra (Agrupada por Fases de presupuesto.xlsx) */}
+                <div>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Horas de Mano de Obra</h4>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+                    
+                    {/* Grupo 1: Oficina y Robótica */}
+                    <div style={{ background: 'var(--color-surface)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-primary)', textTransform: 'uppercase' }}>1. Oficina y Robótica</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Ofs (Oficina)</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.oficina || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'oficina', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Programación</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.programacion || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'programacion', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Mecanizado</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.mecanizado || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'mecanizado', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Pegar / lijar</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.prepost || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'prepost', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Grupo 2: Taller */}
+                    <div style={{ background: 'var(--color-surface)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-primary)', textTransform: 'uppercase' }}>2. Taller</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Esculpir</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.esculpir || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'esculpir', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Line-X</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.linex || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'linex', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Fibra</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.fibra || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'fibra', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Mortero</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.mortero || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'mortero', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Grupo 3: Pintura, Estructura y Entrega */}
+                    <div style={{ background: 'var(--color-surface)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-primary)', textTransform: 'uppercase' }}>3. Pintura, Estructura y Entrega</span>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Pintura</span>
+                        <input type="number" min="0" step="0.5" value={activeExtra.hours.pintura || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'pintura', Number(e.target.value))} style={inputStyle} />
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Estructura</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.estructura || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'estructura', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                        <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}>Embalaje / carga</span>
+                          <input type="number" min="0" step="0.5" value={activeExtra.hours.entrega || ''} disabled={isViewer} onChange={(e) => updateElementExtraValue(activeItem, 'hours', 'entrega', Number(e.target.value))} style={inputStyle} />
+                        </label>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          ) : (
+            <div style={{ background: 'var(--color-surface-container-low)', padding: '40px', borderRadius: '8px', border: '1px dashed var(--color-border)', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+              Selecciona una pieza del listado izquierdo para ver y editar sus cálculos.
+            </div>
+          )}
+        </div>
+
       </div>
+
     </div>
   );
 }
