@@ -16,7 +16,7 @@ export default function ProjectSidebar({
     <aside className="panel project-list">
       <div className="section-title"><h2>Proyectos</h2></div>
       
-      {/* Selector de Cliente para ADMIN en la barra lateral superior de proyectos */}
+      {}
       {isAdmin && (
         <div style={{ marginBottom: '16px', padding: '10px', background: 'var(--color-surface-container-low)', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', marginBottom: '6px' }}>Filtrar por Cliente:</label>

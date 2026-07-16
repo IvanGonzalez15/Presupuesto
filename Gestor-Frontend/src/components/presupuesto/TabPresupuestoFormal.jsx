@@ -19,7 +19,7 @@ export default function TabPresupuestoFormal({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* Selectores de empresa y plantilla */}
+      {}
       <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'center', background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
 
         <div style={{ minWidth: '220px' }}>

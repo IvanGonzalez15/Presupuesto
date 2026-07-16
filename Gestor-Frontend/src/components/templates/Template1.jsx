@@ -94,7 +94,7 @@ export default function Template1({ company, project, items, total, money, templ
         </div>
       </div>
 
-      {/* Tabla de partidas estilo cotización formal */}
+      {}
       <div style={{ margin: '10px 0' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -130,13 +130,13 @@ export default function Template1({ company, project, items, total, money, templ
         </table>
       </div>
 
-      {/* Bloque de condiciones y totales */}
+      {}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--color-border-light)' }}>
         
-        {/* Condiciones de venta con dropdowns interactivos sin bordes */}
+        {}
         <div style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', maxWidth: '520px', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           
-          {/* NO INCLUIDO */}
+          {}
           <div style={{ position: 'relative' }}>
             <strong 
               style={{ cursor: 'pointer', color: 'var(--color-text-primary)', userSelect: 'none' }}
@@ -163,7 +163,7 @@ export default function Template1({ company, project, items, total, money, templ
             )}
           </div>
 
-          {/* FORMA PAGO */}
+          {}
           <div style={{ position: 'relative' }}>
             <strong 
               style={{ cursor: 'pointer', color: 'var(--color-text-primary)', userSelect: 'none' }}
@@ -190,7 +190,7 @@ export default function Template1({ company, project, items, total, money, templ
             )}
           </div>
 
-          {/* IBAN */}
+          {}
           <div style={{ position: 'relative' }}>
             <strong 
               style={{ cursor: 'pointer', color: 'var(--color-text-primary)', userSelect: 'none' }}
@@ -217,7 +217,7 @@ export default function Template1({ company, project, items, total, money, templ
             )}
           </div>
 
-          {/* IMPORTANTE */}
+          {}
           <div style={{ position: 'relative' }}>
             <strong 
               style={{ cursor: 'pointer', color: 'var(--color-text-primary)', userSelect: 'none' }}
@@ -251,7 +251,7 @@ export default function Template1({ company, project, items, total, money, templ
             )}
           </div>
 
-          {/* DESCRIPCION / LOPD */}
+          {}
           <div style={{ position: 'relative', marginTop: '8px', padding: '8px', background: 'var(--color-surface-container-low)', borderRadius: '4px', border: '1px solid var(--color-border-light)' }}>
             <strong 
               style={{ cursor: 'pointer', color: 'var(--color-text-primary)', userSelect: 'none' }}
@@ -285,7 +285,7 @@ export default function Template1({ company, project, items, total, money, templ
 
         </div>
 
-        {/* Bloque de Totales */}
+        {}
         <div style={{ width: '300px', background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.85rem' }}>
             <span>Subtotal:</span>
@@ -302,7 +302,7 @@ export default function Template1({ company, project, items, total, money, templ
         </div>
       </div>
 
-      {/* Bloque de Firmas estilo Excel */}
+      {}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px', padding: '10px 0 20px 0' }}>
         <div>
           <div style={{ borderBottom: '1px solid var(--color-border)', width: '200px', marginBottom: '6px' }}></div>

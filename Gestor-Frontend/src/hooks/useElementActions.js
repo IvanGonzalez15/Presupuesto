@@ -48,7 +48,7 @@ export default function useElementActions({
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
-        // Solo prevenir por defecto si no se está escribiendo en campos de texto normales (opcional)
+        
         e.preventDefault();
         undo();
       }

@@ -149,7 +149,7 @@ exports.uploadPhoto = async (req, res, next) => {
     }
 
     const buffer = Buffer.from(base64Content, 'base64');
-    const MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+    const MAX_SIZE = 5 * 1024 * 1024; 
     if (buffer.length > MAX_SIZE) {
       return res.status(400).json({ message: 'El archivo excede el tamaño máximo permitido de 5MB.' });
     }
@@ -178,12 +178,12 @@ exports.bulkReplace = async (req, res, next) => {
       return res.status(400).json({ message: 'El cuerpo de la solicitud debe ser un array de partidas.' });
     }
 
-    // 1. Eliminar partidas actuales
+    
     await db.Elemento.destroy({
       where: { Id_proyecto: proyectoId }
     });
 
-    // 2. Insertar las partidas del array
+    
     if (items.length > 0) {
       const cleanItems = items.map(item => ({
         Nombre: item.Nombre,

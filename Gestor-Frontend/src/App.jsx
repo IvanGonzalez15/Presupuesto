@@ -132,17 +132,7 @@ function App() {
     }
   };
 
-  const handleProjectRestored = async () => {
-    try {
-      if (selectedProjectId) {
-        const { data: newElements } = await elementService.getAll(selectedProjectId);
-        setElementos(newElements);
-      }
-      await refreshProjects();
-    } catch (error) {
-      setStatus(`Error al refrescar tras restaurar versión: ${error.message}`);
-    }
-  };
+
 
   return (
     <div className="dashboard-layout">
@@ -223,7 +213,6 @@ function App() {
             companies={companies}
             setCompanies={setCompanies}
             templateOptions={templateOptions}
-            handleProjectRestored={handleProjectRestored}
             undo={undo}
             canUndo={canUndo}
           />

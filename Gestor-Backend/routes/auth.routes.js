@@ -29,7 +29,7 @@ router.post('/login', async (req, res, next) => {
       return res.status(401).json({ message: 'Credenciales inválidas' });
     }
 
-    // Update last access timestamp
+    
     user.Ultimo_acceso = new Date();
     await user.save();
 
@@ -49,7 +49,7 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-// Register route restricted to Admin only for creating new users securely
+
 router.post('/register', authenticateToken, authorizeRoles('Admin'), hashPasswordMiddleware, async (req, res, next) => {
   try {
     const { nombre, email = null, password_hash, rol, Activo = 1, proyectoId } = req.body;

@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     categoria: {
       type: DataTypes.STRING(45),
-      allowNull: false // 'porex', 'linex', 'fibra', 'pintura', 'mortero'
+      allowNull: false 
     },
     nombre: {
       type: DataTypes.STRING(100),
@@ -22,7 +22,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     unidad: {
       type: DataTypes.STRING(10),
-      allowNull: false // 'm3', 'm2'
+      allowNull: false 
     }
   }, {
     tableName: 'tarifa_materiales',

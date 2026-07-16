@@ -29,18 +29,18 @@ export default function Setup({
   const [userDraft, setUserDraft] = useState({ nombre: '', email: '', password: '', rol: 'Admin', proyectoId: '' });
   const [tarifas, setTarifas] = useState(null);
 
-  // Material CRUD states
+  
   const [newMaterial, setNewMaterial] = useState({ categoria: 'porex', nombre: '', precio: '', unidad: 'm3' });
   const [editingMaterialId, setEditingMaterialId] = useState(null);
   const [editMaterialDraft, setEditMaterialDraft] = useState({ categoria: '', nombre: '', precio: '', unidad: '' });
 
-  // Company & IBAN states
+  
   const [localCompanies, setLocalCompanies] = useState([]);
   const [selectedCompIdx, setSelectedCompIdx] = useState(0);
   const [newCompanyName, setNewCompanyName] = useState('');
   const [newIban, setNewIban] = useState('');
 
-  // Template options states
+  
   const [optionsDraft, setOptionsDraft] = useState(null);
   const [activeOptTab, setActiveOptTab] = useState('noIncluido');
   const [optInput, setOptInput] = useState('');
@@ -53,7 +53,7 @@ export default function Setup({
       .catch(err => setStatus(`Error al cargar tarifas: ${err.message}`));
   }, []);
 
-  // Sync props to local states
+  
   useEffect(() => {
     if (companies && companies.length > 0) {
       setLocalCompanies(JSON.parse(JSON.stringify(companies)));
@@ -138,7 +138,7 @@ export default function Setup({
     }
   };
 
-  // Material CRUD handlers
+  
   const handleCreateMaterial = async (e) => {
     e.preventDefault();
     try {
@@ -187,7 +187,7 @@ export default function Setup({
     }
   };
 
-  // Company and IBAN handlers
+  
   const updateCompanyField = (field, val) => {
     setLocalCompanies(prev => prev.map((comp, idx) => idx === selectedCompIdx ? { ...comp, [field]: val } : comp));
   };
@@ -269,7 +269,7 @@ export default function Setup({
     }
   };
 
-  // Template options handlers
+  
   const handleAddSimpleOpt = () => {
     if (!optInput.trim()) return;
     setOptionsDraft(prev => ({
@@ -462,7 +462,7 @@ export default function Setup({
         </div>
       )}
 
-      {/* Materials database catalog management */}
+      {}
       <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '20px' }}>
         <div className="section-title"><h2>Catálogo de Materiales (Base de Datos)</h2></div>
         <form onSubmit={handleCreateMaterial} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px', padding: '16px', background: 'var(--color-surface-container-low)', borderRadius: '6px', border: '1px solid var(--color-border-light)', alignItems: 'end' }}>
@@ -557,14 +557,14 @@ export default function Setup({
         </div>
       </div>
 
-      {/* Section 06: Companies & IBANs */}
+      {}
       <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '24px' }}>
         <div className="section-title"><h2>Gestión de Empresas Emisoras e IBANs</h2></div>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
           <div style={{ background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             
-            {/* Alta de nueva empresa */}
+            {}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', borderBottom: '1px solid var(--color-border-light)', paddingBottom: '12px', marginBottom: '4px' }}>
               <div style={{ flex: 1 }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', display: 'block', marginBottom: '6px' }}>Nombre Nueva Empresa</span>
@@ -673,7 +673,7 @@ export default function Setup({
         </div>
       </div>
 
-      {/* Section 07: Template Options / PDF clauses */}
+      {}
       {optionsDraft && (
         <div className="panel setup-card" style={{ maxWidth: '1400px', margin: '0 auto', width: '100%', padding: '24px' }}>
           <div className="section-title"><h2>Cláusulas y Condiciones del Presupuesto (PDF)</h2></div>
@@ -707,7 +707,7 @@ export default function Setup({
 
           <div style={{ background: 'var(--color-surface-container-low)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)' }}>
             
-            {/* Simple list editor for: noIncluido, formaPago, descripcion */}
+            {}
             {activeOptTab !== 'importante' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -735,7 +735,7 @@ export default function Setup({
               </div>
             )}
 
-            {/* Special structure editor for: importante (array of arrays of strings) */}
+            {}
             {activeOptTab === 'importante' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', borderBottom: '1px solid var(--color-border-light)', paddingBottom: '12px', width: '100%' }}>

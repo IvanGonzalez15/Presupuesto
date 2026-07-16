@@ -66,7 +66,7 @@ export default function Template2({ company, project, items, total, money, templ
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', fontFamily: '"Segoe UI", system-ui, -apple-system, sans-serif', color: '#1E293B', background: '#FFFFFF', padding: '16px' }}>
       
-      {/* Cabecera del presupuesto con diseño Minimalista y Profesional */}
+      {}
       <div style={{ 
         display: 'flex',
         justifyContent: 'space-between',
@@ -95,7 +95,7 @@ export default function Template2({ company, project, items, total, money, templ
         </div>
       </div>
 
-      {/* Datos del Cliente */}
+      {}
       <div style={{ 
         background: '#F8FAFC', 
         padding: '18px 24px', 
@@ -116,7 +116,7 @@ export default function Template2({ company, project, items, total, money, templ
         </div>
       </div>
 
-      {/* Tabla de Partidas */}
+      {}
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -155,13 +155,13 @@ export default function Template2({ company, project, items, total, money, templ
         </table>
       </div>
 
-      {/* Sección final de firma y cálculo */}
+      {}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '40px', marginTop: '16px', alignItems: 'flex-start' }}>
         
-        {/* Condiciones Interactivas de Venta */}
+        {}
         <div style={{ fontSize: '0.78rem', color: '#475569', flex: 1, lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           
-          {/* NO INCLUIDO */}
+          {}
           <div style={{ position: 'relative', paddingBottom: '4px' }}>
             <strong 
               onClick={(e) => handleLabelClick(e, 'noIncluido')}
@@ -188,7 +188,7 @@ export default function Template2({ company, project, items, total, money, templ
             )}
           </div>
 
-          {/* FORMA PAGO */}
+          {}
           <div style={{ position: 'relative', paddingBottom: '4px' }}>
             <strong 
               onClick={(e) => handleLabelClick(e, 'formaPago')}
@@ -215,7 +215,7 @@ export default function Template2({ company, project, items, total, money, templ
             )}
           </div>
 
-          {/* IBAN */}
+          {}
           <div style={{ position: 'relative', paddingBottom: '4px' }}>
             <strong 
               onClick={(e) => handleLabelClick(e, 'iban')}
@@ -242,7 +242,7 @@ export default function Template2({ company, project, items, total, money, templ
             )}
           </div>
 
-          {/* IMPORTANTE */}
+          {}
           <div style={{ position: 'relative', paddingBottom: '4px' }}>
             <strong 
               onClick={(e) => handleLabelClick(e, 'importante')}
@@ -276,7 +276,7 @@ export default function Template2({ company, project, items, total, money, templ
             )}
           </div>
 
-          {/* DESCRIPCION / LOPD */}
+          {}
           <div style={{ 
             position: 'relative', 
             marginTop: '8px', 
@@ -317,7 +317,7 @@ export default function Template2({ company, project, items, total, money, templ
 
         </div>
         
-        {/* Totales Box */}
+        {}
         <div style={{ 
           width: '300px', 
           background: '#F8FAFC', 
@@ -348,7 +348,7 @@ export default function Template2({ company, project, items, total, money, templ
         </div>
       </div>
 
-      {/* Bloque de Firmas estilo Excel */}
+      {}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #F1F5F9' }}>
         <div>
           <div style={{ borderBottom: '1.5px solid #1E293B', width: '220px', marginBottom: '8px' }}></div>

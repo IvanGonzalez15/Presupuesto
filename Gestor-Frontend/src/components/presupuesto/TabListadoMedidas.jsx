@@ -8,7 +8,7 @@ export default function TabListadoMedidas({
 }) {
   const [selectedItemId, setSelectedItemId] = useState(null);
 
-  // Auto-seleccionar la primera pieza si no hay ninguna seleccionada
+  
   useEffect(() => {
     if (projectItems.length > 0 && !selectedItemId) {
       setSelectedItemId(projectItems[0].id);
@@ -33,15 +33,15 @@ export default function TabListadoMedidas({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '80px' }}>
       
-      {/* Alerta de información */}
+      {}
       <div className="info-alert" style={{ background: 'var(--color-info-bg)', borderLeft: '4px solid var(--color-info-border)', padding: '12px', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--color-info-text)' }}>
         Escribe directamente los resultados de Superficie (m²) y Volumen (m³) para cada pieza en este listado de medidas.
       </div>
 
-      {/* Maquetación Master-Detail (2 Columnas) */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '24px', alignItems: 'start' }}>
         
-        {/* Columna Izquierda: Listado de piezas */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <h3 style={{ margin: '0', fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Piezas del Presupuesto</h3>
           
@@ -96,7 +96,7 @@ export default function TabListadoMedidas({
           </div>
         </div>
 
-        {/* Columna Derecha: Panel de Edición Detallado */}
+        {}
         <div>
           {activeItem && activeExtra ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -114,7 +114,7 @@ export default function TabListadoMedidas({
                 </div>
 
 
-                {/* Sección Resultados de Medida */}
+                {}
                 <div style={{ background: 'var(--color-surface)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-primary)', textTransform: 'uppercase' }}>Resultados de Medida</span>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

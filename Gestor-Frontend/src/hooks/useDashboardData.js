@@ -69,7 +69,7 @@ export default function useDashboardData(token, currentUser, handleLogout) {
     }
   };
 
-  // Load basic entities
+  
   useEffect(() => {
     if (!token) {
       setClientes([]);
@@ -113,7 +113,7 @@ export default function useDashboardData(token, currentUser, handleLogout) {
     loadDashboard();
   }, [token]);
 
-  // Load elements for the selected project
+  
   useEffect(() => {
     if (!token || !selectedProjectId) {
       setElementos([]);

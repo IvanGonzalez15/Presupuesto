@@ -65,7 +65,7 @@ export default function TabListadoElementos({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Formulario solo visible si no es un Viewer */}
+      {}
       {!isViewer && (
         <form className="item-form" onSubmit={handleItemSubmit} autoComplete="off" style={{ background: 'var(--color-surface)', padding: '20px', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
           <div className="item-form-header" style={{ marginBottom: '16px' }}>

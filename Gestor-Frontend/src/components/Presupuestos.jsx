@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { exportToPDF } from '../utils/pdfHelper';
-import api from '../services/api';
 
 import ProjectSidebar from './presupuesto/ProjectSidebar';
 import TabProyecto from './presupuesto/TabProyecto';
@@ -8,7 +7,6 @@ import TabListadoElementos from './presupuesto/TabListadoElementos';
 import TabListadoMedidas from './presupuesto/TabListadoMedidas';
 import TabCalculoPresupuesto from './presupuesto/TabCalculoPresupuesto';
 import TabPresupuestoFormal from './presupuesto/TabPresupuestoFormal';
-import VersionHistoryModal from './presupuesto/VersionHistoryModal';
 
 export default function Presupuestos({
   proyectos,
@@ -44,7 +42,6 @@ export default function Presupuestos({
   companies = [],
   setCompanies,
   templateOptions,
-  handleProjectRestored,
   undo,
   canUndo
 }) {
@@ -53,7 +50,6 @@ export default function Presupuestos({
 
   const [selectedCompanyId, setSelectedCompanyId] = useState('linex');
   const [selectedTemplateId, setSelectedTemplateId] = useState('Template1');
-  const [openVersionModal, setOpenVersionModal] = useState(false);
 
   useEffect(() => {
     if (companies && companies.length > 0 && selectedCompanyId === 'linex' && !companies.find(c => c.id === 'linex')) {
@@ -113,15 +109,6 @@ export default function Presupuestos({
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7v6h6"></path><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path></svg>
                 Deshacer
-              </button>
-              <button
-                type="button"
-                onClick={() => setOpenVersionModal(true)}
-                className="excel-btn export-btn"
-                style={{ padding: '6px 10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--color-surface-container-high)', border: '1px solid var(--color-border)' }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                Historial
               </button>
               <button type="button" onClick={exportToExcel} className="excel-btn export-btn" style={{ padding: '6px 10px', fontSize: '0.8rem' }}>
                 Exportar Excel
@@ -247,15 +234,6 @@ export default function Presupuestos({
         )}
       </section>
 
-      {selectedProject && (
-        <VersionHistoryModal
-          isOpen={openVersionModal}
-          onClose={() => setOpenVersionModal(false)}
-          proyectoId={selectedProject.id}
-          onProjectRestored={handleProjectRestored}
-          setStatus={setStatus}
-        />
-      )}
     </section>
   );
 }

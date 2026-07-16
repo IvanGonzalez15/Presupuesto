@@ -1,13 +1,13 @@
 const db = require('../models');
 const { parseElementExtraData, calcularPrecioPieza } = require('../helpers/calc.helper');
 
-// Helper to recalculate all elements that use a specific material category (or all of them)
+
 const recalculateAllElements = async () => {
   const elementos = await db.Elemento.findAll();
   const updates = elementos.map(async (el) => {
     if (el.Foto && el.Foto.trim().startsWith('{')) {
       const extra = parseElementExtraData(el.Foto);
-      const calculated = await calcularPrecioPieza(extra, el.Cantidad);
+      const calculated = await calcularPrecioPieza(extra, el.Cantidad, el.medida_metro_cuadrado, el.medida_metro_cubico);
       
       if (el.Precio !== calculated.precio || 
           el.medida_metro_cuadrado !== calculated.medida_metro_cuadrado || 
@@ -47,7 +47,7 @@ exports.create = async (req, res, next) => {
       unidad
     });
 
-    // In case default or anything changes, recalculate elements (optional for new material, but good practice)
+    
     await recalculateAllElements();
 
     res.status(201).json(nuevo);
@@ -76,7 +76,7 @@ exports.update = async (req, res, next) => {
       unidad
     });
 
-    // Price updated: we MUST recalculate all elements that use this material
+    
     await recalculateAllElements();
 
     res.json(material);
@@ -90,7 +90,7 @@ exports.delete = async (req, res, next) => {
     const { id } = req.params;
     const numericId = Number(id);
 
-    // Check if any element uses this material in its JSON
+    
     const elementos = await db.Elemento.findAll();
     const isUsed = elementos.some(el => {
       if (el.Foto && el.Foto.trim().startsWith('{')) {

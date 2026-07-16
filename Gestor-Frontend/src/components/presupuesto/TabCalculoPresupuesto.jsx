@@ -12,7 +12,7 @@ export default function TabCalculoPresupuesto({
 }) {
   const [selectedItemId, setSelectedItemId] = useState(null);
 
-  // Auto-seleccionar la primera pieza si no hay ninguna seleccionada
+  
   useEffect(() => {
     if (projectItems.length > 0 && !selectedItemId) {
       setSelectedItemId(projectItems[0].id);
@@ -36,7 +36,7 @@ export default function TabCalculoPresupuesto({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '80px' }}>
       
-      {/* 1. Tarifas de materiales (Compactas en cabecera) */}
+      {}
       <div style={{ background: 'var(--color-surface-container-low)', padding: '12px 16px', border: '1px solid var(--color-border)', borderRadius: '6px' }}>
         <h4 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Tarifas activas en Base de Datos</h4>
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '0.75rem', color: 'var(--color-text-primary)' }}>
@@ -52,10 +52,10 @@ export default function TabCalculoPresupuesto({
         </div>
       </div>
 
-      {/* 2. Maquetación Master-Detail (2 Columnas) */}
+      {}
       <div style={{ display: 'grid', gridTemplateColumns: '360px 1fr', gap: '24px', alignItems: 'start' }}>
         
-        {/* Columna Izquierda: Listado de piezas */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <h3 style={{ margin: '0', fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--color-text-secondary)', textTransform: 'uppercase' }}>Piezas del Presupuesto</h3>
           
@@ -64,10 +64,10 @@ export default function TabCalculoPresupuesto({
               const extra = parseElementExtraData(item);
               const isSelected = activeItem && activeItem.id === item.id;
               
-              // Calcular total horas
+              
               const totalHrs = Object.values(extra.hours || {}).reduce((acc, h) => acc + Number(h || 0), 0);
               
-              // Badge de materiales seleccionados
+              
               const activeMats = [];
               if (extra.materials.porexId) activeMats.push('Porex');
               if (extra.materials.linexId) activeMats.push('Line-X');
@@ -131,7 +131,7 @@ export default function TabCalculoPresupuesto({
           </div>
         </div>
 
-        {/* Columna Derecha: Panel de Edición Detallado */}
+        {}
         <div>
           {activeItem && activeExtra ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -148,7 +148,7 @@ export default function TabCalculoPresupuesto({
                   </div>
                 </div>
 
-                {/* Sección 2.1: Materiales (Desplegables Premium) */}
+                {}
                 <div>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Materiales y Acabados</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px' }}>
@@ -241,13 +241,13 @@ export default function TabCalculoPresupuesto({
                   </div>
                 </div>
 
-                {/* Sección 2.2: Mano de Obra (Agrupada por Fases de presupuesto.xlsx) */}
+                {}
                 <div>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--color-text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Horas de Mano de Obra</h4>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                     
-                    {/* Grupo 1: Oficina y Robótica */}
+                    {}
                     <div style={{ background: 'var(--color-surface)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-primary)', textTransform: 'uppercase' }}>1. Oficina y Robótica</span>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -272,7 +272,7 @@ export default function TabCalculoPresupuesto({
                       </div>
                     </div>
 
-                    {/* Grupo 2: Taller */}
+                    {}
                     <div style={{ background: 'var(--color-surface)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-primary)', textTransform: 'uppercase' }}>2. Taller</span>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -297,7 +297,7 @@ export default function TabCalculoPresupuesto({
                       </div>
                     </div>
 
-                    {/* Grupo 3: Pintura, Estructura y Entrega */}
+                    {}
                     <div style={{ background: 'var(--color-surface)', padding: '16px', borderRadius: '6px', border: '1px solid var(--color-border-light)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--color-primary)', textTransform: 'uppercase' }}>3. Pintura, Estructura y Entrega</span>
                       <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

@@ -93,7 +93,7 @@ const calcularPrecioPieza = async (extraData, cantidad = 1, manualM2 = null, man
 
   const db = require('../models');
 
-  // Fallbacks for legacy boolean flags (e.g. materials.porex = true)
+  
   let porexId = materials.porexId;
   if (!porexId && materials.porex) {
     const defaultMat = await db.TarifaMaterial.findOne({ where: { categoria: 'porex' } });
@@ -120,7 +120,7 @@ const calcularPrecioPieza = async (extraData, cantidad = 1, manualM2 = null, man
     if (defaultMat) morteroId = defaultMat.id;
   }
 
-  // Load prices of selected materials
+  
   let pricePorex = 0;
   let priceLineX = 0;
   let priceFibra = 0;

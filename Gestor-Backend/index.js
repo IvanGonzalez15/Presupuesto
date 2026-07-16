@@ -7,7 +7,7 @@ const cors = require('cors');
 
 const db = require('./models');
 
-// Routers
+
 const authRoutes = require('./routes/auth.routes');
 const clienteRoutes = require('./routes/cliente.routes');
 const usuarioRoutes = require('./routes/usuario.routes');
@@ -15,7 +15,6 @@ const proyectoRoutes = require('./routes/proyecto.routes');
 const elementoRoutes = require('./routes/elemento.routes');
 const tarifaRoutes = require('./routes/tarifa.routes');
 const tarifaMaterialRoutes = require('./routes/tarifaMaterial.routes');
-const versionProyectoRoutes = require('./routes/versionProyecto.routes');
 const authenticateToken = require('./middlewares/auth.middleware');
 const authorizeRoles = require('./middlewares/role.middleware');
 
@@ -26,19 +25,18 @@ const port = process.env.PORT || 3001;
 app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
 app.use(express.json({ limit: '10mb' }));
 
-// Ensure uploads folder exists
+
 const uploadsPath = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath);
 }
 app.use('/uploads', express.static(uploadsPath));
 
-// Bind Routes
+
 app.use('/api/auth', authRoutes);
 app.use('/api/clientes', clienteRoutes);
 app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/proyectos', proyectoRoutes);
-app.use('/api/proyectos', versionProyectoRoutes);
 app.use('/api/elementos', elementoRoutes);
 app.use('/api/tarifas', tarifaRoutes);
 app.use('/api/tarifas-materiales', tarifaMaterialRoutes);
@@ -110,7 +108,7 @@ const startServer = async () => {
     await db.sequelize.sync();
     console.log('Base de datos sincronizada con Sequelize de forma segura.');
     
-    // Sembrar materiales iniciales si la tabla está vacía
+    
     const seedMateriales = async () => {
       try {
         const count = await db.TarifaMaterial.count();

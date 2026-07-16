@@ -83,11 +83,4 @@ export const templateOptionsService = {
   update: (options) => api.put('/templateoptions', options),
 };
 
-export const versionProyectoService = {
-  getVersiones: (proyectoId) => api.get(`/proyectos/${proyectoId}/versiones`),
-  crearVersion: (proyectoId, data) => api.post(`/proyectos/${proyectoId}/versiones`, data),
-  restaurarVersion: (proyectoId, versionId) => api.post(`/proyectos/${proyectoId}/versiones/${versionId}/restore`),
-  eliminarVersion: (proyectoId, versionId) => api.delete(`/proyectos/${proyectoId}/versiones/${versionId}`),
-};
-
 export default api;

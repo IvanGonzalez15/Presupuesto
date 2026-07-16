@@ -43,7 +43,7 @@ exports.update = async (req, res, next) => {
     const updates = elementos.map(async (el) => {
       if (el.Foto && el.Foto.trim().startsWith('{')) {
         const extra = parseElementExtraData(el.Foto);
-        const calculated = await calcularPrecioPieza(extra, el.Cantidad);
+        const calculated = await calcularPrecioPieza(extra, el.Cantidad, el.medida_metro_cuadrado, el.medida_metro_cubico);
         
         if (el.Precio !== calculated.precio || 
             el.medida_metro_cuadrado !== calculated.medida_metro_cuadrado || 
