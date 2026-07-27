@@ -32,6 +32,58 @@ if (!fs.existsSync(uploadsPath)) {
 }
 app.use('/uploads', express.static(uploadsPath));
 
+// Asegurar existencia del directorio data y sus archivos por defecto al clonar/iniciar
+const dataPath = path.join(__dirname, 'data');
+if (!fs.existsSync(dataPath)) {
+  fs.mkdirSync(dataPath, { recursive: true });
+}
+
+const defaultCompanies = [
+  {
+    id: "empresa_default",
+    nombre: "Empresa Ejemplo, S.L.",
+    nif: "B-00000000",
+    direccion1: "Calle Ejemplo, 1",
+    direccion2: "08000 Barcelona",
+    telefono: "900 000 000",
+    email: "info@ejemplo.com",
+    web: "www.ejemplo.com",
+    ibans: ["ES00 0000 0000 0000 0000 0000"]
+  }
+];
+
+const defaultTemplateOptions = {
+  noIncluido: [
+    "Diseño personalizado, transporte, montaje o instalación",
+    "Conexiones eléctricas, elementos estructurales"
+  ],
+  formaPago: [
+    "50% a la firma del presupuesto y 50% antes de la entrega",
+    "Según contrato"
+  ],
+  importante: [
+    [
+      "Cualquier cambio por parte del cliente en el proceso de producción implicará un nuevo cambio en la fecha de entrega y presupuesto.",
+      "La fabricación se iniciará a partir de recibir el primer pago.",
+      "Las horas extras se facturarán aparte."
+    ]
+  ],
+  descripcion: [
+    "Tratamos la información facilidada con el fin de prestar el servicio solicitado y realizar la facturación del mismo.",
+    "Presupuesto provisional hasta tener toda la información y documentación del proyecto."
+  ]
+};
+
+const companiesFilePath = path.join(dataPath, 'companies.json');
+if (!fs.existsSync(companiesFilePath)) {
+  fs.writeFileSync(companiesFilePath, JSON.stringify(defaultCompanies, null, 2), 'utf8');
+}
+
+const templateOptionsFilePath = path.join(dataPath, 'templateoptions.json');
+if (!fs.existsSync(templateOptionsFilePath)) {
+  fs.writeFileSync(templateOptionsFilePath, JSON.stringify(defaultTemplateOptions, null, 2), 'utf8');
+}
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/clientes', clienteRoutes);
