@@ -36,8 +36,6 @@ const defaultOptions = {
 };
 
 export default function Template1({ company, project, items, total, money, templateOptions }) {
-  if (!company || !project) return null;
-
   const options = templateOptions || defaultOptions;
 
   const [openDropdown, setOpenDropdown] = React.useState(null);
@@ -59,6 +57,8 @@ export default function Template1({ company, project, items, total, money, templ
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, []);
+
+  if (!company || !project) return null;
 
   const ibans = company.ibans || (company.iban ? [company.iban] : (options.iban || []));
 

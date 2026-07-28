@@ -43,7 +43,8 @@ export default function Presupuestos({
   setCompanies,
   templateOptions,
   undo,
-  canUndo
+  canUndo,
+  isSaving
 }) {
   const initialItem = { Nombre: '', Foto: '', Cantidad: 1, Unidad_de_medida: 'ud', Precio: 0, medida_metro_cuadrado: 0, medida_metro_cubico: 0 };
   const [itemDraft, setItemDraft] = useState(initialItem);
@@ -64,7 +65,12 @@ export default function Presupuestos({
 
   const handleItemSubmit = (e) => {
     e.preventDefault();
-    createElemento(itemDraft);
+    const cleanNombre = (itemDraft.Nombre || '').trim();
+    if (!cleanNombre) {
+      setStatus('El nombre de la partida no puede estar vacío.');
+      return;
+    }
+    createElemento({ ...itemDraft, Nombre: cleanNombre });
     setItemDraft(initialItem);
   };
 
@@ -84,8 +90,25 @@ export default function Presupuestos({
 
       <section className="panel budget-builder" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div className="budget-header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '12px' }}>
-          <div className="section-title" style={{ margin: 0, padding: 0, borderBottom: 0, flexShrink: 0 }}>
-            <h2 style={{ fontSize: '1.2rem' }}>Presupuesto: {selectedProject ? selectedProject.Codigo : 'Sin selección'}</h2>
+          <div className="section-title" style={{ margin: 0, padding: 0, borderBottom: 0, flexShrink: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h2 style={{ fontSize: '1.2rem', margin: 0 }}>Presupuesto: {selectedProject ? selectedProject.Codigo : 'Sin selección'}</h2>
+            {isSaving && (
+              <span style={{
+                fontSize: '0.72rem',
+                background: 'var(--color-surface-container-high)',
+                color: 'var(--color-primary)',
+                padding: '3px 8px',
+                borderRadius: '12px',
+                border: '1px solid var(--color-border)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontWeight: '600'
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-primary)', display: 'inline-block' }} />
+                Guardando...
+              </span>
+            )}
           </div>
           {selectedProject && (
             <div className="excel-actions" style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>

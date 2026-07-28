@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CustomDropdown from './CustomDropdown';
+import ConfirmModal from './ConfirmModal';
 import { tarifaService, tarifaMaterialService, companyService, templateOptionsService } from '../services/api';
 
 const today = new Date().toISOString().slice(0, 10);
@@ -28,6 +29,8 @@ export default function Setup({
   const [projectDraft, setProjectDraft] = useState(initialProject);
   const [userDraft, setUserDraft] = useState({ nombre: '', email: '', password: '', rol: 'Admin', proyectoId: '' });
   const [tarifas, setTarifas] = useState(null);
+  const [materialToDelete, setMaterialToDelete] = useState(null);
+  const [confirmDeleteCompany, setConfirmDeleteCompany] = useState(false);
 
   
   const [newMaterial, setNewMaterial] = useState({ categoria: 'porex', nombre: '', precio: '', unidad: 'm3' });
@@ -174,7 +177,6 @@ export default function Setup({
   };
 
   const handleDeleteMaterial = async (id) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este material?')) return;
     try {
       await tarifaMaterialService.delete(id);
       setTarifasMateriales(prev => prev.filter(m => m.id !== id));
@@ -224,14 +226,18 @@ export default function Setup({
       setStatus('Debe haber al menos una empresa registrada.');
       return;
     }
+    setConfirmDeleteCompany(true);
+  };
+
+  const executeDeleteCompany = () => {
     const compToDelete = localCompanies[selectedCompIdx];
-    if (!window.confirm(`⚠️ ¿Estás seguro de que deseas eliminar la empresa "${compToDelete.nombre}"?`)) return;
     setLocalCompanies(prev => {
       const nextList = prev.filter((_, idx) => idx !== selectedCompIdx);
       setSelectedCompIdx(0);
       return nextList;
     });
-    setStatus(`Empresa "${compToDelete.nombre}" eliminada temporalmente. Haz clic en Guardar para persistir.`);
+    setConfirmDeleteCompany(false);
+    setStatus(`Empresa "${compToDelete?.nombre || ''}" eliminada temporalmente. Haz clic en Guardar para persistir.`);
   };
 
   const handleAddIban = () => {
@@ -541,7 +547,7 @@ export default function Setup({
                     ) : (
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button onClick={() => startEditMaterial(m)} style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text-primary)', cursor: 'pointer' }}>Editar</button>
-                        <button onClick={() => handleDeleteMaterial(m.id)} style={{ padding: '6px 12px', background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar</button>
+                        <button onClick={() => setMaterialToDelete(m)} style={{ padding: '6px 12px', background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar</button>
                       </div>
                     )}
                   </td>
@@ -870,6 +876,31 @@ export default function Setup({
           </div>
         </form>
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(materialToDelete)}
+        title="¿Eliminar material?"
+        message={`¿Estás seguro de que deseas eliminar el material "${materialToDelete?.nombre || ''}"?`}
+        confirmText="Eliminar material"
+        cancelText="Cancelar"
+        onConfirm={() => {
+          if (materialToDelete) {
+            handleDeleteMaterial(materialToDelete.id);
+            setMaterialToDelete(null);
+          }
+        }}
+        onCancel={() => setMaterialToDelete(null)}
+      />
+
+      <ConfirmModal
+        isOpen={confirmDeleteCompany}
+        title="¿Eliminar empresa?"
+        message={`¿Estás seguro de que deseas eliminar la empresa "${localCompanies[selectedCompIdx]?.nombre || ''}"? Recuera hacer clic en "Guardar Empresas" para confirmar el cambio.`}
+        confirmText="Eliminar empresa"
+        cancelText="Cancelar"
+        onConfirm={executeDeleteCompany}
+        onCancel={() => setConfirmDeleteCompany(false)}
+      />
     </section>
   );
 }

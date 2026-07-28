@@ -20,6 +20,7 @@ export default function useElementActions({
 }) {
   const pendingUpdates = useRef({});
   const [undoStack, setUndoStack] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setUndoStack([]);
@@ -111,7 +112,6 @@ export default function useElementActions({
       setStatus('Solo los administradores pueden eliminar proyectos.');
       return;
     }
-    if (!window.confirm('¿Seguro que quieres eliminar este proyecto y todos sus elementos?')) return;
     try {
       await projectService.delete(id);
       setProyectos((current) => current.filter((p) => p.id !== id));
@@ -124,7 +124,6 @@ export default function useElementActions({
   };
 
   const deleteElemento = async (id) => {
-    if (!window.confirm('¿Seguro que quieres eliminar esta partida?')) return;
     saveStateForUndo();
     try {
       await elementService.delete(id);
@@ -178,12 +177,21 @@ export default function useElementActions({
   };
 
   const queueElementUpdate = (itemId, updateFn) => {
+    setIsSaving(true);
+    setStatus('Guardando cambios...');
     if (pendingUpdates.current[itemId]) {
       clearTimeout(pendingUpdates.current[itemId]);
     }
     pendingUpdates.current[itemId] = setTimeout(async () => {
-      await updateFn();
-      delete pendingUpdates.current[itemId];
+      try {
+        await updateFn();
+        setStatus('Cambios guardados correctamente.');
+      } catch (err) {
+        setStatus(`Error al guardar: ${err.message}`);
+      } finally {
+        setIsSaving(false);
+        delete pendingUpdates.current[itemId];
+      }
     }, 300);
   };
 
@@ -349,6 +357,7 @@ export default function useElementActions({
     exportToExcel,
     handleImportExcel,
     undo,
-    canUndo: undoStack.length > 0
+    canUndo: undoStack.length > 0,
+    isSaving
   };
 }

@@ -84,7 +84,8 @@ function App() {
     exportToExcel,
     handleImportExcel,
     undo,
-    canUndo
+    canUndo,
+    isSaving
   } = useElementActions({
     currentUser,
     isAdmin,
@@ -215,10 +216,18 @@ function App() {
             templateOptions={templateOptions}
             undo={undo}
             canUndo={canUndo}
+            isSaving={isSaving}
           />
         )}
       </main>
-      {status && <footer className="status-bar" onClick={() => setStatusRaw('')} title="Haga clic para cerrar">{status}</footer>}
+      {(status || isSaving) && (
+        <footer className="status-bar" onClick={() => setStatusRaw('')} title="Haga clic para cerrar" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {isSaving && (
+            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6', animation: 'pulse 1s infinite' }} />
+          )}
+          <span>{status}</span>
+        </footer>
+      )}
     </div>
   );
 }

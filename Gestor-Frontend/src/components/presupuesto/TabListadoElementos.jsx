@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getPhotoUrl, parseElementExtraData } from '../../utils/elementHelpers';
+import ConfirmModal from '../ConfirmModal';
 
 export default function TabListadoElementos({
   isViewer,
@@ -20,6 +21,7 @@ export default function TabListadoElementos({
   const [uploadingForm, setUploadingForm] = useState(false);
   const [uploadingTableId, setUploadingTableId] = useState(null);
   const [dragOverTableId, setDragOverTableId] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const handleFileChangeLocal = async (e, targetType, targetItem = null) => {
     const file = e.target.files?.[0];
@@ -221,7 +223,7 @@ export default function TabListadoElementos({
                   <td style={{ padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>{money.format(item.Cantidad * item.Precio)}</td>
                   {!isViewer && (
                     <td style={{ padding: '8px', textAlign: 'center' }}>
-                      <button onClick={() => deleteElemento(item.id)} style={{ padding: '4px 8px', background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                      <button onClick={() => setItemToDelete(item)} style={{ padding: '4px 8px', background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger)', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
                         Eliminar
                       </button>
                     </td>
@@ -240,6 +242,21 @@ export default function TabListadoElementos({
         </table>
         {!projectItems.length && <p className="empty-state">No hay elementos creados para este proyecto.</p>}
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(itemToDelete)}
+        title="¿Eliminar partida?"
+        message={`¿Seguro que quieres eliminar la partida "${itemToDelete?.Nombre || ''}"? Podrás deshacer este cambio con Ctrl + Z.`}
+        confirmText="Eliminar partida"
+        cancelText="Cancelar"
+        onConfirm={() => {
+          if (itemToDelete) {
+            deleteElemento(itemToDelete.id);
+            setItemToDelete(null);
+          }
+        }}
+        onCancel={() => setItemToDelete(null)}
+      />
     </div>
   );
 }
